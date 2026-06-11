@@ -4,7 +4,7 @@
         <field name="name">contract.contract.list</field>
         <field name="model">contract.contract</field>
         <field name="arch" type="xml">
-            <list string="Contracts"
+            <tree string="Contracts"
                   decoration-info="state == 'draft'"
                   decoration-success="state == 'active'"
                   decoration-muted="state in ('completed','cancelled')">
@@ -16,14 +16,14 @@
                 <field name="start_date"/>
                 <field name="end_date"/>
                 <field name="value"/>
-                <field name="currency_id" column_invisible="1"/>
+                <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
                        decoration-warning="state in ('review','rfq_prep','rfq_issued','evaluation','pending_approval','re_tendering','finalization')"
                        decoration-success="state == 'active'"
                        decoration-danger="state in ('rejected','cancelled')"
                        decoration-muted="state == 'completed'"/>
-            </list>
+            </tree>
         </field>
     </record>
 
@@ -108,14 +108,14 @@
                         <page string="Work Items"
                               invisible="contract_type not in ('lump_sum_ctr','unit_rate_ctr','daywork_tm','epc')">
                             <field name="line_ids">
-                                <list editable="bottom">
+                                <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="description"/>
                                     <field name="qty"/>
                                     <field name="uom"/>
                                     <field name="unit_price"/>
                                     <field name="subtotal" readonly="1"/>
-                                </list>
+                                </tree>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
                                 <field name="lines_total" string="Lines Total" readonly="1"/>
