@@ -1,0 +1,9 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_contract_viewer,contract viewer,model_contract_contract,contract_management.group_viewer,1,0,0,0
+access_contract_requester,contract requester,model_contract_contract,contract_management.group_requester,1,1,1,0
+access_contract_team,contract team,model_contract_contract,contract_management.group_subcontractor_team,1,1,1,1
+access_contract_mgmt,contract mgmt,model_contract_contract,contract_management.group_management,1,1,1,1
+access_line_viewer,line viewer,model_contract_line,contract_management.group_viewer,1,0,0,0
+access_line_requester,line requester,model_contract_line,contract_management.group_requester,1,1,1,0
+access_line_team,line team,model_contract_line,contract_management.group_subcontractor_team,1,1,1,1
+access_line_mgmt,line mgmt,model_contract_line,contract_management.group_management,1,1,1,1

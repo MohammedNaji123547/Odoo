@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="module_contract_management" model="ir.module.category">
+            <field name="name">Contract Management</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="group_viewer" model="res.groups">
+            <field name="name">Viewer</field>
+            <field name="category_id" ref="module_contract_management"/>
+        </record>
+
+        <record id="group_requester" model="res.groups">
+            <field name="name">Requester</field>
+            <field name="category_id" ref="module_contract_management"/>
+            <field name="implied_ids" eval="[(4, ref('group_viewer'))]"/>
+        </record>
+
+        <record id="group_subcontractor_team" model="res.groups">
+            <field name="name">Subcontractor Management Team</field>
+            <field name="category_id" ref="module_contract_management"/>
+            <field name="implied_ids" eval="[(4, ref('group_requester'))]"/>
+        </record>
+
+        <record id="group_management" model="res.groups">
+            <field name="name">Management</field>
+            <field name="category_id" ref="module_contract_management"/>
+            <field name="implied_ids" eval="[(4, ref('group_subcontractor_team'))]"/>
+        </record>
+    </data>
+</odoo>
