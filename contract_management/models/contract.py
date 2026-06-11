@@ -200,18 +200,19 @@ class ContractContract(models.Model):
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
         if self.parent_frame_id:
-            self.line_ids = [(5, 0, 0)]
-            self.line_ids = [(0, 0, {
+            lines = [(0, 0, {
                 'description': l.description,
                 'uom': l.uom,
                 'unit_price': l.unit_price,
                 'frame_line_id': l.id,
                 'qty': 0.0,
             }) for l in self.parent_frame_id.line_ids]
+            self.line_ids = [(5, 0, 0)] + lines
+        else:
+            self.line_ids = [(5, 0, 0)]
 
     @api.onchange('contractor_id')
     def _onchange_contractor_id(self):
-        # Auto-clear frame agreement if contractor changes
         if self.parent_frame_id and self.parent_frame_id.contractor_id != self.contractor_id:
             self.parent_frame_id = False
             self.line_ids = [(5, 0, 0)]
