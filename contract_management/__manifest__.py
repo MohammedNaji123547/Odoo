@@ -4,7 +4,7 @@
     'category': 'Legal',
     'summary': 'Manage company contracts',
     'author': 'Your Company',
-    'depends': ['base', 'contacts', 'mail'],
+    'depends': ['base', 'contacts', 'mail', 'analytic', 'project'],
     'data': [
         'security/security.xml',
         'security/ir.model.access.csv',

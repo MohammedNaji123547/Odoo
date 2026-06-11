@@ -1,4 +1,5 @@
 from odoo import models, fields, _
+from markupsafe import Markup, escape
 
 
 class ContractJustificationWizard(models.TransientModel):
@@ -13,7 +14,12 @@ class ContractJustificationWizard(models.TransientModel):
     def action_confirm(self):
         contract = self.contract_id
         contract.message_post(
-            body='<b>%s</b><br/>%s' % (self.action_label, self.justification)
+            body=Markup('<b>%s</b><br/>%s') % (
+                escape(self.action_label or ''),
+                escape(self.justification or ''),
+            ),
+            message_type='comment',
+            subtype_xmlid='mail.mt_comment',
         )
         if self.action_code == 'cancel':
             contract.state = 'cancelled'

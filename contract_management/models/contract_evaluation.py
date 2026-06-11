@@ -5,20 +5,31 @@ class ContractEvaluation(models.Model):
     _name = 'contract.evaluation'
     _description = 'Commercial Evaluation'
 
-    contract_id = fields.Many2one(
-        'contract.contract', required=True, ondelete='cascade'
-    )
+    contract_id = fields.Many2one('contract.contract', required=True, ondelete='cascade')
     partner_id = fields.Many2one('res.partner', string='Contractor', required=True)
     is_recommended = fields.Boolean(string='Recommended')
     is_lowest = fields.Boolean(compute='_compute_is_lowest', store=False)
     notes = fields.Text(string='Notes / Remarks')
     line_ids = fields.One2many('contract.evaluation.line', 'evaluation_id', string='Lines')
     total_amount = fields.Float(string='Total Amount', compute='_compute_total', store=True)
+    avg_profitability = fields.Float(
+        string='Avg. Profit %', compute='_compute_avg_profitability', store=True
+    )
 
     @api.depends('line_ids.total')
     def _compute_total(self):
         for rec in self:
             rec.total_amount = sum(rec.line_ids.mapped('total'))
+
+    @api.depends('line_ids.profitability', 'line_ids.total')
+    def _compute_avg_profitability(self):
+        for rec in self:
+            lines = rec.line_ids.filtered(lambda l: l.unit_rate > 0)
+            total_base = sum(lines.mapped('total'))
+            if total_base:
+                rec.avg_profitability = sum(l.total * l.profitability for l in lines) / total_base
+            else:
+                rec.avg_profitability = 0.0
 
     def _compute_is_lowest(self):
         for rec in self:
