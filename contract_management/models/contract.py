@@ -1,4 +1,4 @@
-from odoo import models, fields, api, _
+﻿from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
 from markupsafe import Markup, escape
 
@@ -41,7 +41,6 @@ class ContractContract(models.Model):
         default=lambda self: self.env.company.currency_id
     )
 
-    # Cost Center & Project (Fix 3)
     analytic_account_id = fields.Many2one(
         'account.analytic.account', string='Cost Center', tracking=True
     )
@@ -49,7 +48,6 @@ class ContractContract(models.Model):
         'project.project', string='Project / CTR', tracking=True
     )
 
-    # Counterparty — set only in Finalization, filtered to evaluated contractors (Fix 7)
     partner_id = fields.Many2one('res.partner', string='Counterparty', tracking=True)
     evaluated_partner_ids = fields.Many2many(
         'res.partner',
@@ -57,7 +55,6 @@ class ContractContract(models.Model):
         string='Evaluated Partners',
     )
 
-    # Unit Rate CTR
     contractor_id = fields.Many2one('res.partner', string='Contractor', tracking=True)
     parent_frame_id = fields.Many2one(
         'contract.contract', string='Parent Frame Agreement', tracking=True
@@ -85,14 +82,11 @@ class ContractContract(models.Model):
     evaluation_ids = fields.One2many('contract.evaluation', 'contract_id', string='Evaluations')
     approver_ids = fields.One2many('contract.approver', 'contract_id', string='Approvers')
 
-    # Evaluation comparison table (Fix 6)
     eval_comparison_html = fields.Html(
         string='Evaluation Comparison',
         compute='_compute_eval_comparison_html',
         sanitize=False,
     )
-
-    # ── Computed fields
 
     @api.depends('line_ids.subtotal')
     def _compute_lines_total(self):
@@ -123,9 +117,7 @@ class ContractContract(models.Model):
                 '<table class="table table-sm table-bordered table-striped">'
             )]
 
-            # Header row 1 — contractor names
-            parts.append(Markup('<thead><tr>'
-                                '<th>Description</th><th>QTY</th><th>Unit</th>'))
+            parts.append(Markup('<thead><tr><th>Description</th><th>QTY</th><th>Unit</th>'))
             for ev in evals:
                 badge = (Markup(' <span class="badge text-bg-success">Recommended</span>')
                          if ev.is_recommended else Markup(''))
@@ -134,13 +126,11 @@ class ContractContract(models.Model):
                 ))
             parts.append(Markup('</tr>'))
 
-            # Header row 2 — sub-columns
             parts.append(Markup('<tr><th></th><th></th><th></th>'))
             for _ in evals:
                 parts.append(Markup('<th>Rate</th><th>Total</th><th>Profit %</th>'))
             parts.append(Markup('</tr></thead><tbody>'))
 
-            # Collect unique BOQ items across all evaluations
             all_items = {}
             for ev in evals:
                 for line in ev.line_ids:
@@ -154,7 +144,6 @@ class ContractContract(models.Model):
                             'uom': line.uom or '',
                         }
 
-            # Data rows
             for key, item in all_items.items():
                 parts.append(Markup('<tr><td>%s</td><td>%.2f</td><td>%s</td>') % (
                     escape(item['desc']), item['qty'], escape(item['uom'])
@@ -176,16 +165,12 @@ class ContractContract(models.Model):
                         parts.append(Markup('<td>-</td><td>-</td><td>-</td>'))
                 parts.append(Markup('</tr>'))
 
-            # Totals row
-            parts.append(Markup('<tr class="table-warning fw-bold">'
-                                '<td colspan="3">TOTAL</td>'))
+            parts.append(Markup('<tr class="table-warning fw-bold"><td colspan="3">TOTAL</td>'))
             for ev in evals:
                 parts.append(Markup('<td colspan="2">%.2f</td><td></td>') % ev.total_amount)
             parts.append(Markup('</tr></tbody></table></div>'))
 
             rec.eval_comparison_html = Markup('').join(parts)
-
-    # ── ORM overrides
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -193,8 +178,6 @@ class ContractContract(models.Model):
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
         return super().create(vals_list)
-
-    # ── Onchange
 
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
@@ -214,8 +197,6 @@ class ContractContract(models.Model):
     def _onchange_contractor_id(self):
         self.parent_frame_id = False
         self.line_ids = [(5, 0, 0)]
-
-    # ── Helpers
 
     def _check_attachments(self):
         if not self.attachment_ids:
@@ -247,14 +228,10 @@ class ContractContract(models.Model):
                 note=_('Your approval is required for contract: %s') % self.name,
             )
 
-    # ── Workflow actions
-
-    # DRAFT
     def action_submit_review(self):
         self._check_attachments()
         self.state = 'review'
 
-    # UNDER REVIEW
     def action_reviewed(self):
         if self.contract_type == 'unit_rate_ctr':
             self._check_approvers()
@@ -266,14 +243,12 @@ class ContractContract(models.Model):
     def action_resubmit_requestor(self):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
 
-    # RFQ PROCESSING
     def action_rfq_proceed(self):
         self.state = 'evaluation'
 
     def action_rfq_cancel(self):
         return self._open_wizard('cancel', 'Cancel Contract')
 
-    # EVALUATION
     def action_proceed_approval(self):
         if not self.evaluation_ids:
             raise ValidationError(_('Please add at least one commercial evaluation before proceeding.'))
@@ -287,7 +262,6 @@ class ContractContract(models.Model):
     def action_evaluation_resubmit_requestor(self):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
 
-    # PENDING APPROVAL
     def action_approve(self):
         self.state = 'finalization'
 
@@ -300,7 +274,6 @@ class ContractContract(models.Model):
     def action_approval_resubmit_requester(self):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requester')
 
-    # FINALIZATION
     def action_finalization_proceed(self):
         if not self.signed_copy_ids:
             raise ValidationError(_('Please attach the signed contract copy.'))
@@ -311,6 +284,5 @@ class ContractContract(models.Model):
     def action_finalization_cancel(self):
         return self._open_wizard('cancel', 'Cancel Contract')
 
-    # ACTIVE
     def action_active_proceed(self):
         self.state = 'completed'
