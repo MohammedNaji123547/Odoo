@@ -24,8 +24,7 @@ class ContractContract(models.Model):
     state = fields.Selection([
         ('draft', 'Draft'),
         ('review', 'Under Review'),
-        ('rfq_prep', 'RFQ Preparation'),
-        ('rfq_issued', 'RFQ Issued'),
+        ('rfq_processing', 'RFQ Processing'),
         ('evaluation', 'Evaluation'),
         ('pending_approval', 'Pending Approval'),
         ('finalization', 'Finalization'),
@@ -215,13 +214,6 @@ class ContractContract(models.Model):
     def _onchange_contractor_id(self):
         self.parent_frame_id = False
         self.line_ids = [(5, 0, 0)]
-        domain = [
-            ('contract_type', '=', 'frame_msa'),
-            ('state', 'in', ['active', 'completed']),
-        ]
-        if self.contractor_id:
-            domain.append(('contractor_id', '=', self.contractor_id.id))
-        return {'domain': {'parent_frame_id': domain}}
 
     # ── Helpers
 
@@ -269,24 +261,17 @@ class ContractContract(models.Model):
             self.state = 'pending_approval'
             self._notify_approvers()
         else:
-            self.state = 'rfq_prep'
+            self.state = 'rfq_processing'
 
     def action_resubmit_requestor(self):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
 
-    # RFQ PREPARATION
-    def action_rfq_proceed(self):
-        self.state = 'rfq_issued'
+    # RFQ PROCESSING
+        def action_rfq_proceed(self):
+            self.state = 'evaluation'
 
-    def action_rfq_cancel(self):
-        return self._open_wizard('cancel', 'Cancel Contract')
-
-    # RFQ ISSUED
-    def action_rfq_issued_proceed(self):
-        self.state = 'evaluation'
-
-    def action_rfq_issued_cancel(self):
-        return self._open_wizard('cancel', 'Cancel Contract')
+        def action_rfq_cancel(self):
+            return self._open_wizard('cancel', 'Cancel Contract')
 
     # EVALUATION
     def action_proceed_approval(self):
