@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_contract_evaluation_form" model="ir.ui.view">
+        <field name="name">contract.evaluation.form</field>
+        <field name="model">contract.evaluation</field>
+        <field name="arch" type="xml">
+            <form string="Commercial Evaluation">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_id" string="Contractor"/>
+                            <field name="is_recommended"/>
+                        </group>
+                    </group>
+                    <field name="line_ids">
+                        <tree editable="bottom"
+                              decoration-success="profitability &gt; 0"
+                              decoration-danger="profitability &lt; 0">
+                            <field name="contract_line_id" string="BOQ Item"/>
+                            <field name="description"/>
+                            <field name="qty"/>
+                            <field name="uom"/>
+                            <field name="unit_rate"/>
+                            <field name="awarded_rate"/>
+                            <field name="total" readonly="1"/>
+                            <field name="profitability" readonly="1"/>
+                        </tree>
+                    </field>
+                    <group class="oe_subtotal_footer oe_right">
+                        <field name="total_amount" readonly="1"/>
+                    </group>
+                    <field name="notes" placeholder="Remarks and recommendation notes..."/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

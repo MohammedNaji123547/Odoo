@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <!-- LIST VIEW -->
     <record id="view_contract_list" model="ir.ui.view">
         <field name="name">contract.contract.list</field>
         <field name="model">contract.contract</field>
@@ -11,7 +12,6 @@
                 <field name="name"/>
                 <field name="title"/>
                 <field name="contract_type"/>
-                <field name="partner_id"/>
                 <field name="responsible_id"/>
                 <field name="start_date"/>
                 <field name="end_date"/>
@@ -19,39 +19,71 @@
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
-                       decoration-warning="state in ('review','rfq_prep','rfq_issued','evaluation','pending_approval','re_tendering','finalization')"
+                       decoration-warning="state in ('review','rfq_prep','rfq_issued','evaluation','pending_approval','finalization')"
                        decoration-success="state == 'active'"
-                       decoration-danger="state in ('rejected','cancelled')"
+                       decoration-danger="state == 'cancelled'"
                        decoration-muted="state == 'completed'"/>
             </tree>
         </field>
     </record>
 
+    <!-- FORM VIEW -->
     <record id="view_contract_form" model="ir.ui.view">
         <field name="name">contract.contract.form</field>
         <field name="model">contract.contract</field>
         <field name="arch" type="xml">
             <form string="Contract">
                 <header>
+                    <!-- DRAFT -->
                     <button name="action_submit_review" string="Submit for Review"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"/>
-                    <button name="action_approve_review" string="Approve &amp; Prepare RFQ"
+
+                    <!-- UNDER REVIEW -->
+                    <button name="action_reviewed" string="Reviewed"
                             type="object" class="btn-primary"
                             invisible="state != 'review'"
                             groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_issue_rfq" string="Issue RFQ"
+                    <button name="action_resubmit_requestor" string="Resubmit to Requestor"
+                            type="object"
+                            invisible="state != 'review'"
+                            groups="contract_management.group_subcontractor_team"/>
+
+                    <!-- RFQ PREPARATION -->
+                    <button name="action_rfq_proceed" string="Proceed"
                             type="object" class="btn-primary"
                             invisible="state != 'rfq_prep'"
                             groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_receive_quotations" string="Quotations Received"
+                    <button name="action_rfq_cancel" string="Cancel"
+                            type="object" class="btn-danger"
+                            invisible="state != 'rfq_prep'"
+                            groups="contract_management.group_subcontractor_team"/>
+
+                    <!-- RFQ ISSUED -->
+                    <button name="action_rfq_issued_proceed" string="Proceed"
                             type="object" class="btn-primary"
                             invisible="state != 'rfq_issued'"
                             groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_request_approval" string="Request Approval"
+                    <button name="action_rfq_issued_cancel" string="Cancel"
+                            type="object" class="btn-danger"
+                            invisible="state != 'rfq_issued'"
+                            groups="contract_management.group_subcontractor_team"/>
+
+                    <!-- EVALUATION -->
+                    <button name="action_proceed_approval" string="Proceed for Approval"
                             type="object" class="btn-primary"
                             invisible="state != 'evaluation'"
                             groups="contract_management.group_subcontractor_team"/>
+                    <button name="action_evaluation_resubmit_requestor" string="Resubmit to Requestor"
+                            type="object"
+                            invisible="state != 'evaluation'"
+                            groups="contract_management.group_subcontractor_team"/>
+                    <button name="action_evaluation_cancel" string="Cancel"
+                            type="object" class="btn-danger"
+                            invisible="state != 'evaluation'"
+                            groups="contract_management.group_subcontractor_team"/>
+
+                    <!-- PENDING APPROVAL -->
                     <button name="action_approve" string="Approve"
                             type="object" class="btn-success"
                             invisible="state != 'pending_approval'"
@@ -60,66 +92,128 @@
                             type="object" class="btn-danger"
                             invisible="state != 'pending_approval'"
                             groups="contract_management.group_management"/>
-                    <button name="action_re_tender" string="Re-Tender"
+                    <button name="action_resubmit_contracting" string="Resubmit to Contracting"
                             type="object"
-                            invisible="state != 'rejected'"
-                            groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_upload_signed" string="Mark as Signed &amp; Active"
+                            invisible="state != 'pending_approval' or contract_type == 'unit_rate_ctr'"
+                            groups="contract_management.group_management"/>
+                    <button name="action_approval_resubmit_requester" string="Resubmit to Requester"
+                            type="object"
+                            invisible="state != 'pending_approval'"
+                            groups="contract_management.group_management"/>
+
+                    <!-- FINALIZATION -->
+                    <button name="action_finalization_proceed" string="Proceed"
                             type="object" class="btn-success"
                             invisible="state != 'finalization'"
                             groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_complete" string="Mark Completed"
-                            type="object"
+                    <button name="action_finalization_cancel" string="Cancel"
+                            type="object" class="btn-danger"
+                            invisible="state != 'finalization'"
+                            groups="contract_management.group_subcontractor_team"/>
+
+                    <!-- ACTIVE -->
+                    <button name="action_active_proceed" string="Proceed"
+                            type="object" class="btn-primary"
                             invisible="state != 'active'"
                             groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_cancel" string="Cancel"
-                            type="object" class="btn-danger"
-                            invisible="state in ('active','completed','cancelled')"
-                            groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_reset_draft" string="Reset to Draft"
-                            type="object"
-                            invisible="state not in ('cancelled','rejected')"
-                            groups="contract_management.group_subcontractor_team"/>
+
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,review,rfq_prep,rfq_issued,evaluation,pending_approval,finalization,active,completed"/>
                 </header>
+
                 <sheet>
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
                         <h2><field name="title" placeholder="Contract Title..."/></h2>
                     </div>
+
                     <group>
                         <group string="Contract Details">
                             <field name="contract_type"/>
-                            <field name="partner_id"/>
+                            <field name="contractor_id"
+                                   invisible="contract_type != 'unit_rate_ctr'"/>
+                            <field name="parent_frame_id"
+                                   invisible="contract_type != 'unit_rate_ctr'"
+                                   domain="[('contract_type','=','frame_msa'),('state','=','active'),('contractor_id','=',contractor_id)]"/>
                             <field name="responsible_id"/>
                         </group>
                         <group string="Dates &amp; Value">
                             <field name="start_date"/>
                             <field name="end_date"/>
                             <field name="currency_id"/>
-                            <field name="value"/>
+                            <field name="value"
+                                   readonly="contract_type not in ('frame_msa','daywork_tm') and state not in ('finalization','active','completed')"/>
                         </group>
                     </group>
+
                     <notebook>
                         <page string="Description">
-                            <field name="description" placeholder="Enter contract description..."/>
+                            <field name="description" placeholder="Contract scope and description..."/>
                         </page>
-                        <page string="Work Items"
-                              invisible="contract_type not in ('lump_sum_ctr','unit_rate_ctr','daywork_tm','epc')">
+
+                        <page string="Work Items">
                             <field name="line_ids">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="description"/>
-                                    <field name="qty"/>
+                                    <field name="qty"
+                                           column_invisible="parent.contract_type in ('frame_msa','daywork_tm')"/>
                                     <field name="uom"/>
-                                    <field name="unit_price"/>
-                                    <field name="subtotal" readonly="1"/>
+                                    <field name="unit_price"
+                                           column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
+                                           readonly="parent.contract_type == 'unit_rate_ctr' or parent.state not in ('finalization','active','completed')"/>
+                                    <field name="subtotal"
+                                           column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
+                                           readonly="1"/>
                                 </tree>
                             </field>
-                            <group class="oe_subtotal_footer oe_right">
+                            <group class="oe_subtotal_footer oe_right"
+                                   invisible="contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')">
                                 <field name="lines_total" string="Lines Total" readonly="1"/>
                             </group>
+                        </page>
+
+                        <page string="BOQ &amp; Documents">
+                            <field name="attachment_ids" widget="many2many_binary"/>
+                        </page>
+
+                        <page string="Approval Chain">
+                            <p class="text-muted o_form_label"
+                               invisible="state in ('pending_approval','finalization','active','completed')">
+                                Add approvers below — they will be notified when this contract reaches Pending Approval.
+                            </p>
+                            <field name="approver_ids">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="user_id"/>
+                                    <field name="status" widget="badge"
+                                           decoration-success="status == 'approved'"
+                                           decoration-danger="status == 'rejected'"
+                                           decoration-warning="status == 'pending'"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Commercial Evaluation"
+                              invisible="state not in ('evaluation','pending_approval','finalization','active','completed') or contract_type == 'unit_rate_ctr'">
+                            <field name="evaluation_ids">
+                                <tree decoration-success="is_lowest" decoration-info="is_recommended">
+                                    <field name="partner_id" string="Contractor"/>
+                                    <field name="total_amount" string="Total Amount"/>
+                                    <field name="is_recommended" string="Recommended" widget="boolean"/>
+                                    <field name="is_lowest" string="Lowest" widget="boolean"/>
+                                    <field name="notes" string="Remarks"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <page string="Finalization"
+                              invisible="state not in ('finalization','active','completed')">
+                            <group string="Counterparty">
+                                <field name="partner_id" string="Counterparty" required="state in ('finalization','active','completed')"/>
+                            </group>
+                            <separator string="Signed Contract Copy (Mandatory)"/>
+                            <field name="signed_copy_ids" widget="many2many_binary"/>
                         </page>
                     </notebook>
                 </sheet>
@@ -128,32 +222,7 @@
         </field>
     </record>
 
-    <record id="view_contract_kanban" model="ir.ui.view">
-        <field name="name">contract.contract.kanban</field>
-        <field name="model">contract.contract</field>
-        <field name="arch" type="xml">
-            <kanban default_group_by="state">
-                <field name="name"/>
-                <field name="title"/>
-                <field name="partner_id"/>
-                <field name="state"/>
-                <field name="value"/>
-                <field name="currency_id"/>
-                <field name="responsible_id"/>
-                <templates>
-                    <t t-name="card">
-                        <div>
-                            <strong><field name="name"/></strong>
-                            <div><field name="title"/></div>
-                            <div class="text-muted"><field name="partner_id"/></div>
-                            <div><field name="responsible_id"/></div>
-                        </div>
-                    </t>
-                </templates>
-            </kanban>
-        </field>
-    </record>
-
+    <!-- SEARCH VIEW -->
     <record id="view_contract_search" model="ir.ui.view">
         <field name="name">contract.contract.search</field>
         <field name="model">contract.contract</field>
@@ -164,7 +233,7 @@
                 <field name="partner_id"/>
                 <field name="responsible_id"/>
                 <filter string="My Contracts" name="my_contracts" domain="[('responsible_id','=',uid)]"/>
-                <filter string="Active" name="active" domain="[('state','=','active')]"/>
+                <filter string="Active" name="active_f" domain="[('state','=','active')]"/>
                 <filter string="Pending Approval" name="pending" domain="[('state','=','pending_approval')]"/>
                 <filter string="Draft" name="draft" domain="[('state','=','draft')]"/>
                 <separator/>
@@ -177,10 +246,11 @@
         </field>
     </record>
 
+    <!-- ACTION -->
     <record id="action_contract_contract" model="ir.actions.act_window">
         <field name="name">Contracts</field>
         <field name="res_model">contract.contract</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">tree,form</field>
         <field name="search_view_id" ref="view_contract_search"/>
         <field name="context">{'search_default_my_contracts': 1}</field>
     </record>

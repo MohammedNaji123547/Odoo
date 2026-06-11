@@ -1,6 +1,6 @@
 {
     'name': 'Contract Management',
-    'version': '17.0.1.0.0',
+    'version': '17.0.2.0.0',
     'category': 'Legal',
     'summary': 'Manage company contracts',
     'author': 'Your Company',
@@ -9,6 +9,8 @@
         'security/security.xml',
         'security/ir.model.access.csv',
         'data/sequence.xml',
+        'wizards/justification_wizard_views.xml',
+        'views/contract_evaluation_views.xml',
         'views/contract_views.xml',
         'views/menu.xml',
     ],

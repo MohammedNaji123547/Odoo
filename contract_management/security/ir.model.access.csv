@@ -7,3 +7,13 @@ access_line_viewer,line viewer,model_contract_line,contract_management.group_vie
 access_line_requester,line requester,model_contract_line,contract_management.group_requester,1,1,1,0
 access_line_team,line team,model_contract_line,contract_management.group_subcontractor_team,1,1,1,1
 access_line_mgmt,line mgmt,model_contract_line,contract_management.group_management,1,1,1,1
+access_eval_viewer,eval viewer,model_contract_evaluation,contract_management.group_viewer,1,0,0,0
+access_eval_team,eval team,model_contract_evaluation,contract_management.group_subcontractor_team,1,1,1,1
+access_eval_mgmt,eval mgmt,model_contract_evaluation,contract_management.group_management,1,1,1,1
+access_eval_line_viewer,eval line viewer,model_contract_evaluation_line,contract_management.group_viewer,1,0,0,0
+access_eval_line_team,eval line team,model_contract_evaluation_line,contract_management.group_subcontractor_team,1,1,1,1
+access_eval_line_mgmt,eval line mgmt,model_contract_evaluation_line,contract_management.group_management,1,1,1,1
+access_approver_viewer,approver viewer,model_contract_approver,contract_management.group_viewer,1,0,0,0
+access_approver_team,approver team,model_contract_approver,contract_management.group_subcontractor_team,1,1,1,1
+access_approver_mgmt,approver mgmt,model_contract_approver,contract_management.group_management,1,1,1,1
+access_wizard,wizard,model_contract_justification_wizard,base.group_user,1,1,1,1

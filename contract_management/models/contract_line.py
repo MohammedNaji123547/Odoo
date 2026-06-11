@@ -6,17 +6,15 @@ class ContractLine(models.Model):
     _description = 'Contract Line Item'
 
     contract_id = fields.Many2one(
-        'contract.contract', string='Contract',
-        required=True, ondelete='cascade'
+        'contract.contract', required=True, ondelete='cascade'
     )
-    sequence = fields.Integer(string='Seq.', default=10)
+    frame_line_id = fields.Many2one('contract.line', ondelete='set null')
+    sequence = fields.Integer(default=10)
     description = fields.Char(string='Description', required=True)
-    qty = fields.Float(string='Quantity', default=1.0)
+    qty = fields.Float(string='Quantity', default=0.0)
     uom = fields.Char(string='Unit')
-    unit_price = fields.Float(string='Unit Price')
-    subtotal = fields.Float(
-        string='Subtotal', compute='_compute_subtotal', store=True
-    )
+    unit_price = fields.Float(string='Agreed Rate')
+    subtotal = fields.Float(compute='_compute_subtotal', store=True)
 
     @api.depends('qty', 'unit_price')
     def _compute_subtotal(self):
