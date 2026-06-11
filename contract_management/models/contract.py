@@ -267,11 +267,11 @@ class ContractContract(models.Model):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
 
     # RFQ PROCESSING
-        def action_rfq_proceed(self):
-            self.state = 'evaluation'
+    def action_rfq_proceed(self):
+        self.state = 'evaluation'
 
-        def action_rfq_cancel(self):
-            return self._open_wizard('cancel', 'Cancel Contract')
+    def action_rfq_cancel(self):
+        return self._open_wizard('cancel', 'Cancel Contract')
 
     # EVALUATION
     def action_proceed_approval(self):
