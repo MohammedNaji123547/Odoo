@@ -213,9 +213,15 @@ class ContractContract(models.Model):
 
     @api.onchange('contractor_id')
     def _onchange_contractor_id(self):
-        if self.parent_frame_id and self.parent_frame_id.contractor_id != self.contractor_id:
-            self.parent_frame_id = False
-            self.line_ids = [(5, 0, 0)]
+        self.parent_frame_id = False
+        self.line_ids = [(5, 0, 0)]
+        domain = [
+            ('contract_type', '=', 'frame_msa'),
+            ('state', 'in', ['active', 'completed']),
+        ]
+        if self.contractor_id:
+            domain.append(('contractor_id', '=', self.contractor_id.id))
+        return {'domain': {'parent_frame_id': domain}}
 
     # ── Helpers
 

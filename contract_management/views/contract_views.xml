@@ -148,7 +148,7 @@
                             <field name="parent_frame_id"
                                    invisible="contract_type != 'unit_rate_ctr'"
                                    readonly="state in ('review','rfq_prep','rfq_issued')"
-                                   domain="[('contract_type','=','frame_msa'),('state','in',['active','completed']),('contractor_id','=',contractor_id)]"/>
+                                   domain="[('contract_type','=','frame_msa'),('state','in',['active','completed'])]"/>
                             <field name="responsible_id"
                                    readonly="state in ('review','rfq_prep','rfq_issued')"/>
                             <field name="analytic_account_id"
