@@ -49,24 +49,14 @@
                             invisible="state != 'review'"
                             groups="contract_management.group_subcontractor_team"/>
 
-                    <!-- RFQ PREPARATION -->
+                    <!-- RFQ PROCESSING -->
                     <button name="action_rfq_proceed" string="Proceed"
                             type="object" class="btn-primary"
-                            invisible="state != 'rfq_prep'"
+                            invisible="state != 'rfq_processing'"
                             groups="contract_management.group_subcontractor_team"/>
                     <button name="action_rfq_cancel" string="Cancel"
                             type="object" class="btn-danger"
-                            invisible="state != 'rfq_prep'"
-                            groups="contract_management.group_subcontractor_team"/>
-
-                    <!-- RFQ ISSUED -->
-                    <button name="action_rfq_issued_proceed" string="Proceed"
-                            type="object" class="btn-primary"
-                            invisible="state != 'rfq_issued'"
-                            groups="contract_management.group_subcontractor_team"/>
-                    <button name="action_rfq_issued_cancel" string="Cancel"
-                            type="object" class="btn-danger"
-                            invisible="state != 'rfq_issued'"
+                            invisible="state != 'rfq_processing'"
                             groups="contract_management.group_subcontractor_team"/>
 
                     <!-- EVALUATION -->
@@ -121,7 +111,7 @@
                             groups="contract_management.group_subcontractor_team"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,review,rfq_prep,rfq_issued,evaluation,pending_approval,finalization,active,completed"/>
+                           statusbar_visible="draft,review,rfq_processing,evaluation,pending_approval,finalization,active,completed"/>
                 </header>
 
                 <sheet>
@@ -132,7 +122,7 @@
                         <h1><field name="name" readonly="1"/></h1>
                         <h2>
                             <field name="title" placeholder="Contract Title..."
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                         </h2>
                     </div>
 
