@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_contract_root"
+              name="Contracts"
+              sequence="50"
+              groups="contract_management.group_viewer"/>
+
+    <menuitem id="menu_contract_all"
+              name="All Contracts"
+              parent="menu_contract_root"
+              action="action_contract_contract"
+              sequence="10"/>
+</odoo>
