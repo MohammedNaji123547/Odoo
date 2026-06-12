@@ -138,7 +138,7 @@
                             <field name="parent_frame_id"
                                    invisible="contract_type != 'unit_rate_ctr'"
                                    readonly="state in ('review','rfq_prep','rfq_issued')"
-                                   domain="[('contract_type','=','frame_msa'),('state','in',['active','completed'])]"/>
+                                   domain="[('contract_type','=','frame_msa'),('state','in',['active','completed']),('contractor_id','=',contractor_id)]"/>
                             <field name="responsible_id"
                                    readonly="state in ('review','rfq_prep','rfq_issued')"/>
                             <field name="analytic_account_id"
@@ -177,7 +177,7 @@
                                     <field name="uom"/>
                                     <field name="unit_price"
                                            column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
-                                           readonly="parent.contract_type == 'unit_rate_ctr' or parent.state not in ('finalization','active','completed')"/>
+                                           readonly="parent.contract_type == 'unit_rate_ctr'"/>
                                     <field name="subtotal"
                                            column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
                                            readonly="1"/>
