@@ -484,10 +484,9 @@ class TestFrameOnchange(TestContractBase):
         ctr = self._new_contract(
             'unit_rate_ctr',
             contractor_id=self.partner_a.id,
+            parent_frame_id=frame.id,
         )
-        # Simulate onchange
-        ctr._origin = ctr  # needed for onchange context
-        ctr.parent_frame_id = frame
+        # Trigger onchange manually on saved record
         ctr._onchange_parent_frame_id()
         self.assertEqual(len(ctr.line_ids), 1)
         self.assertEqual(ctr.line_ids[0].description, 'Excavation')
