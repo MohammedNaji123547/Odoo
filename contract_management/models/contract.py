@@ -172,28 +172,22 @@ class ContractContract(models.Model):
 
             rec.eval_comparison_html = Markup('').join(parts)
 
-    def _safe_subscribe(self, partner_ids):
-        """Subscribe partners only if not already following."""
-        existing = self.message_follower_ids.mapped('partner_id').ids
-        to_add = [pid for pid in partner_ids if pid not in existing]
-        if to_add:
-            self.message_subscribe(partner_ids=to_add)
-
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
-        records = super().create(vals_list)
-        for rec in records:
-            if rec.responsible_id and rec.responsible_id.partner_id:
-                rec._safe_subscribe([rec.responsible_id.partner_id.id])
-        return records
+        return super().create(vals_list)
 
-    @api.onchange('responsible_id')
-    def _onchange_responsible_id(self):
-        if self.responsible_id and self.responsible_id.partner_id:
-            self._safe_subscribe([self.responsible_id.partner_id.id])
+    def write(self, vals):
+        res = super().write(vals)
+        if 'responsible_id' in vals:
+            for rec in self:
+                if rec.responsible_id and rec.responsible_id.partner_id:
+                    existing = rec.message_follower_ids.mapped('partner_id').ids
+                    if rec.responsible_id.partner_id.id not in existing:
+                        rec.message_subscribe(partner_ids=[rec.responsible_id.partner_id.id])
+        return res
 
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
