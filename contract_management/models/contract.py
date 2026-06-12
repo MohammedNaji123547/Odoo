@@ -173,15 +173,15 @@ class ContractContract(models.Model):
             rec.eval_comparison_html = Markup('').join(parts)
 
     @api.model_create_multi
-        def create(self, vals_list):
-            for vals in vals_list:
-                if vals.get('name', _('New')) == _('New'):
-                    vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
-            records = super().create(vals_list)
-            for rec in records:
-                if rec.responsible_id and rec.responsible_id.partner_id:
-                    rec.message_subscribe(partner_ids=[rec.responsible_id.partner_id.id])
-            return records
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('New')) == _('New'):
+                vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.responsible_id and rec.responsible_id.partner_id:
+                rec.message_subscribe(partner_ids=[rec.responsible_id.partner_id.id])
+        return records
 
     @api.onchange('responsible_id')
     def _onchange_responsible_id(self):
