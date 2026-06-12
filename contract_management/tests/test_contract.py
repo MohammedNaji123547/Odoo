@@ -39,23 +39,24 @@ class TestContractBase(TransactionCase):
         cls.partner_b = cls.env['res.partner'].create({'name': 'Contractor Beta'})
         cls.partner_c = cls.env['res.partner'].create({'name': 'Contractor Gamma'})
 
+        internal = cls.env.ref('base.group_user').id
         cls.user_requester = cls.env['res.users'].create({
             'name': 'Test Requester',
             'login': 'test_requester_cm',
             'email': 'requester@test.com',
-            'groups_id': [(4, cls.env.ref('contract_management.group_requester').id)],
+            'groups_id': [(4, internal), (4, cls.env.ref('contract_management.group_requester').id)],
         })
         cls.user_team = cls.env['res.users'].create({
             'name': 'Test Team',
             'login': 'test_team_cm',
             'email': 'team@test.com',
-            'groups_id': [(4, cls.env.ref('contract_management.group_subcontractor_team').id)],
+            'groups_id': [(4, internal), (4, cls.env.ref('contract_management.group_subcontractor_team').id)],
         })
         cls.user_mgmt = cls.env['res.users'].create({
             'name': 'Test Manager',
             'login': 'test_mgmt_cm',
             'email': 'manager@test.com',
-            'groups_id': [(4, cls.env.ref('contract_management.group_management').id)],
+            'groups_id': [(4, internal), (4, cls.env.ref('contract_management.group_management').id)],
         })
 
     # ------------------------------------------------------------------
