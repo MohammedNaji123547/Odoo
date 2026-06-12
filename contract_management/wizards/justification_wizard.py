@@ -20,7 +20,7 @@ class ContractJustificationWizard(models.TransientModel):
             ),
             message_type='notification',
         )
-        )
+        
         if self.action_code == 'cancel':
             contract.state = 'cancelled'
         elif self.action_code == 'resubmit_requestor':
