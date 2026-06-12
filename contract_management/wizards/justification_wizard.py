@@ -14,12 +14,12 @@ class ContractJustificationWizard(models.TransientModel):
     def action_confirm(self):
         contract = self.contract_id
         contract.message_post(
-            body=Markup('<b>%s</b><br/>%s') % (
+            body=Markup('<b>Action: %s</b><br/><b>Reason:</b> %s') % (
                 escape(self.action_label or ''),
                 escape(self.justification or ''),
             ),
-            message_type='comment',
-            subtype_xmlid='mail.mt_comment',
+            message_type='notification',
+        )
         )
         if self.action_code == 'cancel':
             contract.state = 'cancelled'
