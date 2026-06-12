@@ -328,11 +328,35 @@
             </kanban>
         </field>
     </record>
+    <!-- GRAPH VIEW -->
+    <record id="view_contract_graph" model="ir.ui.view">
+        <field name="name">contract.contract.graph</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <graph string="Contracts by Stage" type="bar" stacked="1">
+                <field name="state" type="row"/>
+                <field name="contract_type" type="col"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- PIVOT VIEW -->
+    <record id="view_contract_pivot" model="ir.ui.view">
+        <field name="name">contract.contract.pivot</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <pivot string="Contracts Overview">
+                <field name="state" type="row"/>
+                <field name="contract_type" type="col"/>
+                <field name="value" type="measure"/>
+            </pivot>
+        </field>
+    </record>
     <!-- ACTION -->
     <record id="action_contract_contract" model="ir.actions.act_window">
         <field name="name">Contracts</field>
         <field name="res_model">contract.contract</field>
-        <field name="view_mode">tree,kanban,form</field>
+        <field name="view_mode">tree,kanban,graph,pivot,form</field>
         <field name="search_view_id" ref="view_contract_search"/>
         <field name="context">{'search_default_my_contracts': 1}</field>
     </record>
