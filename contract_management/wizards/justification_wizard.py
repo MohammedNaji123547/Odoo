@@ -18,7 +18,7 @@ class ContractJustificationWizard(models.TransientModel):
                 escape(self.action_label or ''),
                 escape(self.justification or ''),
             ),
-            message_type='notification',
+            message_type='comment',
         )
         
         if self.action_code == 'cancel':
