@@ -172,6 +172,13 @@ class ContractContract(models.Model):
 
             rec.eval_comparison_html = Markup('').join(parts)
 
+    def _safe_subscribe(self, partner_ids):
+        """Subscribe partners only if not already following."""
+        existing = self.message_follower_ids.mapped('partner_id').ids
+        to_add = [pid for pid in partner_ids if pid not in existing]
+        if to_add:
+            self.message_subscribe(partner_ids=to_add)
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -180,13 +187,13 @@ class ContractContract(models.Model):
         records = super().create(vals_list)
         for rec in records:
             if rec.responsible_id and rec.responsible_id.partner_id:
-                rec.message_subscribe(partner_ids=[rec.responsible_id.partner_id.id])
+                rec._safe_subscribe([rec.responsible_id.partner_id.id])
         return records
 
     @api.onchange('responsible_id')
     def _onchange_responsible_id(self):
         if self.responsible_id and self.responsible_id.partner_id:
-            self.message_subscribe(partner_ids=[self.responsible_id.partner_id.id])
+            self._safe_subscribe([self.responsible_id.partner_id.id])
 
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
@@ -230,20 +237,11 @@ class ContractContract(models.Model):
         }
 
     def _notify_approvers(self):
-        partner_ids = []
         for approver in self.approver_ids:
             self.activity_schedule(
                 'mail.mail_activity_data_todo',
                 user_id=approver.user_id.id,
                 note=_('Your approval is required for contract: %s') % self.name,
-            )
-            if approver.user_id.partner_id:
-                partner_ids.append(approver.user_id.partner_id.id)
-        if partner_ids:
-            self.message_post(
-                body=Markup('<b>Approval Required</b><br/>Contract <b>%s</b> is pending your approval.') % escape(self.name),
-                message_type='comment',
-                partner_ids=partner_ids,
             )
 
     def action_submit_review(self):
