@@ -61,7 +61,7 @@ class ContractContract(models.Model):
     )
 
     responsible_id = fields.Many2one(
-        'res.users', string='Responsible Person',
+        'res.users', string='Requester',
         default=lambda self: self.env.user, tracking=True
     )
     description = fields.Html(string='Description')

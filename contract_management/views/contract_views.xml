@@ -19,7 +19,7 @@
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
-                       decoration-warning="state in ('review','rfq_prep','rfq_issued','evaluation','pending_approval','finalization')"
+                       decoration-warning="state in ('review','rfq_processing','evaluation','pending_approval','finalization')"
                        decoration-success="state == 'active'"
                        decoration-danger="state == 'cancelled'"
                        decoration-muted="state == 'completed'"/>
@@ -129,32 +129,29 @@
                     <group>
                         <group string="Contract Details">
                             <field name="contract_type"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
-                            <!-- Contractor: shown for Unit Rate CTR AND Frame Agreement/MSA -->
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="contractor_id"
                                    invisible="contract_type != 'unit_rate_ctr'"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
-                            <!-- Parent Frame: only for Unit Rate CTR -->
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="parent_frame_id"
                                    invisible="contract_type != 'unit_rate_ctr'"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"
+                                   readonly="state in ('review','rfq_processing')"
                                    domain="[('contract_type','=','frame_msa'),('state','in',['active','completed']),('partner_id','=',contractor_id)]"/>
-                            <field name="responsible_id"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                            <field name="responsible_id" readonly="1"/>
                             <field name="analytic_account_id"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="project_id"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                         </group>
                         <group string="Dates &amp; Value">
                             <field name="start_date"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="end_date"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="currency_id"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                             <field name="value"
-                                   readonly="(contract_type not in ('frame_msa','daywork_tm') and state not in ('finalization','active','completed')) or state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="(contract_type not in ('frame_msa','daywork_tm') and state not in ('finalization','active','completed')) or state in ('review','rfq_processing')"/>
                         </group>
                     </group>
 
@@ -162,13 +159,13 @@
                         <page string="Description">
                             <field name="description"
                                    placeholder="Contract scope and description..."
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                         </page>
 
                         <!-- WORK ITEMS -->
                         <page string="Work Items">
                             <field name="line_ids"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')">
+                                   readonly="state in ('review','rfq_processing')">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="description"/>
@@ -193,12 +190,10 @@
                         <!-- BOQ / DOCUMENTS -->
                         <page string="BOQ &amp; Documents">
                             <field name="attachment_ids" widget="many2many_binary"
-                                   readonly="state in ('review','rfq_prep','rfq_issued')"/>
+                                   readonly="state in ('review','rfq_processing')"/>
                         </page>
 
-                        <!-- APPROVAL CHAIN
-                             Fix 1: show at 'evaluation' for non-unit-rate;
-                             show always for unit_rate_ctr (no evaluation stage) -->
+                        <!-- APPROVAL CHAIN -->
                         <page string="Approval Chain"
                               invisible="contract_type != 'unit_rate_ctr' and state not in ('evaluation','pending_approval','finalization','active','completed')">
                             <p class="text-muted"
@@ -218,8 +213,7 @@
                             </field>
                         </page>
 
-                        <!-- COMMERCIAL EVALUATION
-                             Fix 5 + Fix 6: avg profitability in tree, comparison table below -->
+                        <!-- COMMERCIAL EVALUATION -->
                         <page string="Commercial Evaluation"
                               invisible="state not in ('evaluation','pending_approval','finalization','active','completed') or contract_type == 'unit_rate_ctr'">
                             <field name="evaluation_ids">
@@ -237,8 +231,7 @@
                             <field name="eval_comparison_html" readonly="1"/>
                         </page>
 
-                        <!-- FINALIZATION
-                             Fix 7: partner filtered to evaluated contractors -->
+                        <!-- FINALIZATION -->
                         <page string="Finalization"
                               invisible="state not in ('finalization','active','completed')">
                             <group string="Counterparty">
@@ -279,12 +272,13 @@
                             context="{'group_by': 'state'}"/>
                     <filter string="Type" name="group_type"
                             context="{'group_by': 'contract_type'}"/>
-                    <filter string="Responsible" name="group_resp"
+                    <filter string="Requester" name="group_resp"
                             context="{'group_by': 'responsible_id'}"/>
                 </group>
             </search>
         </field>
     </record>
+
     <!-- KANBAN VIEW -->
     <record id="view_contract_kanban" model="ir.ui.view">
         <field name="name">contract.contract.kanban</field>
@@ -328,6 +322,7 @@
             </kanban>
         </field>
     </record>
+
     <!-- GRAPH VIEW -->
     <record id="view_contract_graph" model="ir.ui.view">
         <field name="name">contract.contract.graph</field>
@@ -352,6 +347,7 @@
             </pivot>
         </field>
     </record>
+
     <!-- ACTION -->
     <record id="action_contract_contract" model="ir.actions.act_window">
         <field name="name">Contracts</field>
