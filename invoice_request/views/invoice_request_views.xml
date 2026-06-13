@@ -149,10 +149,10 @@
                             <field name="line_ids" readonly="state != 'draft'">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="contract_line_id" invisible="1"/>
-                                    <field name="description" readonly="1"/>
-                                    <field name="qty" readonly="1"/>
-                                    <field name="uom" readonly="1"/>
+                                    <field name="contract_line_id" invisible="1" force_save="1"/>
+                                    <field name="description" readonly="1" force_save="1"/>
+                                    <field name="qty" readonly="1" force_save="1"/>
+                                    <field name="uom" readonly="1" force_save="1"/>
                                     <field name="unit_price" readonly="1" force_save="1"/>
                                     <field name="contract_amount" readonly="1"/>
                                     <field name="completed_qty"/>

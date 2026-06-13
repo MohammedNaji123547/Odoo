@@ -40,8 +40,15 @@ class InvoiceRequestLine(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            # Recover unit_price from contract line if lost (readonly field)
-            if not vals.get('unit_price') and vals.get('contract_line_id'):
+            # Recover fields from contract line if lost (readonly fields not sent by client)
+            if vals.get('contract_line_id'):
                 cl = self.env['contract.line'].browse(vals['contract_line_id'])
-                vals['unit_price'] = cl.unit_price
+                if not vals.get('description'):
+                    vals['description'] = cl.description or '/'
+                if not vals.get('unit_price'):
+                    vals['unit_price'] = cl.unit_price
+                if not vals.get('qty'):
+                    vals['qty'] = cl.qty
+                if not vals.get('uom'):
+                    vals['uom'] = cl.uom
         return super().create(vals_list)
