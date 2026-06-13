@@ -8,7 +8,7 @@
             <tree string="Invoice Requests"
                   decoration-info="state == 'draft'"
                   decoration-muted="state == 'in_review'"
-                  decoration-warning="state in ('submitted', 'manager_approved')"
+                  decoration-warning="state == 'submitted'"
                   decoration-success="state == 'finance_approved'"
                   decoration-danger="state in ('rejected', 'cancelled')">
                 <field name="name"/>
@@ -22,7 +22,7 @@
                 <field name="currency_id" invisible="1"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
-                       decoration-warning="state in ('submitted', 'manager_approved')"
+                       decoration-warning="state == 'submitted'"
                        decoration-success="state == 'finance_approved'"
                        decoration-danger="state in ('rejected', 'cancelled')"/>
             </tree>
@@ -55,32 +55,18 @@
                             type="object"
                             invisible="not is_current_approver"/>
 
-                    <!-- SUBMITTED: Manager actions -->
-                    <button name="action_manager_approve" string="Approve"
-                            type="object" class="btn-success"
-                            invisible="state != 'submitted'"
-                            groups="invoice_request.group_manager"/>
-                    <button name="action_manager_reject" string="Reject"
-                            type="object" class="btn-danger"
-                            invisible="state != 'submitted'"
-                            groups="invoice_request.group_manager"/>
-                    <button name="action_manager_resubmit" string="Resubmit to Requester"
-                            type="object"
-                            invisible="state != 'submitted'"
-                            groups="invoice_request.group_manager"/>
-
-                    <!-- MANAGER APPROVED: Finance actions -->
+                    <!-- PENDING FINANCE: Finance actions -->
                     <button name="action_finance_approve" string="Approve &amp; Create Bill"
                             type="object" class="btn-success"
-                            invisible="state != 'manager_approved'"
+                            invisible="state != 'submitted'"
                             groups="invoice_request.group_finance"/>
                     <button name="action_finance_reject" string="Reject"
                             type="object" class="btn-danger"
-                            invisible="state != 'manager_approved'"
+                            invisible="state != 'submitted'"
                             groups="invoice_request.group_finance"/>
                     <button name="action_finance_resubmit" string="Resubmit to Requester"
                             type="object"
-                            invisible="state != 'manager_approved'"
+                            invisible="state != 'submitted'"
                             groups="invoice_request.group_finance"/>
 
                     <!-- REJECTED / CANCELLED: Reset -->
@@ -89,7 +75,7 @@
                             invisible="state not in ('rejected', 'cancelled')"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,in_review,submitted,manager_approved,finance_approved"/>
+                           statusbar_visible="draft,in_review,submitted,finance_approved"/>
                 </header>
 
                 <sheet>
@@ -147,8 +133,6 @@
                     <!-- Approval info -->
                     <group string="Approval Information"
                            invisible="state == 'draft'">
-                        <field name="manager_id" readonly="1"
-                               invisible="not manager_id"/>
                         <field name="finance_user_id" readonly="1"
                                invisible="not finance_user_id"/>
                         <field name="vendor_bill_id" readonly="1"
@@ -164,8 +148,10 @@
                     </div>
 
                     <!-- 2-column: notebook left, timeline right -->
-                    <div class="row g-0">
-                        <div class="col-lg-8 pe-lg-3">
+                    <div style="display:flex; align-items:flex-start; gap:0; margin-top:4px;">
+
+                        <!-- LEFT: notebook -->
+                        <div style="flex:1; min-width:0;">
                             <notebook>
                                 <!-- ── Invoice Lines ── -->
                                 <page string="Invoice Lines">
@@ -220,21 +206,20 @@
                             </notebook>
                         </div>
 
-                        <!-- ── Workflow Timeline ── -->
-                        <div class="col-lg-4 ps-lg-3"
-                             style="border-left:1px solid #e9ecef; margin-top:8px;">
-                            <div style="padding:10px 4px 4px 4px;">
-                                <div style="font-size:12px; font-weight:700; color:#6c757d;
-                                            text-transform:uppercase; letter-spacing:.6px;
-                                            margin-bottom:12px; padding-bottom:6px;
-                                            border-bottom:1px solid #e9ecef;">
-                                    <i class="fa fa-history" style="margin-right:5px;"></i>
-                                    Workflow History
-                                </div>
-                                <field name="timeline_html" readonly="1"
-                                       style="min-height:80px;"/>
+                        <!-- RIGHT: Workflow Timeline -->
+                        <div style="flex:0 0 280px; width:280px; margin-left:16px;
+                                    border-left:2px solid #f0f0f0; padding-left:16px;
+                                    padding-top:12px;">
+                            <div style="font-size:11px; font-weight:700; color:#8c96a5;
+                                        text-transform:uppercase; letter-spacing:.7px;
+                                        margin-bottom:14px; padding-bottom:8px;
+                                        border-bottom:1px solid #f0f0f0;">
+                                <i class="fa fa-history" style="margin-right:5px;"></i>
+                                Workflow History
                             </div>
+                            <field name="timeline_html" readonly="1"/>
                         </div>
+
                     </div>
                 </sheet>
                 <chatter/>

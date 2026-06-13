@@ -8,7 +8,7 @@ _ACTION_META = {
     'submit_review':     ('Submitted for Review',             'fa-paper-plane',  '#0d6efd'),
     'submit_direct':     ('Submitted for Approval',           'fa-paper-plane',  '#0d6efd'),
     'approver_approve':  ('Approved',                         'fa-check',        '#fd7e14'),
-    'chain_complete':    ('All Approvers Done — Sent to Manager', 'fa-arrow-right', '#0dcaf0'),
+    'chain_complete':    ('All Approvers Done — Sent to Finance', 'fa-arrow-right', '#0dcaf0'),
     'approver_reject':   ('Rejected by Approver',             'fa-times',        '#dc3545'),
     'approver_resubmit': ('Resubmitted to Requester',         'fa-undo',         '#fd7e14'),
     'manager_approve':   ('Manager Approved',                 'fa-thumbs-up',    '#0dcaf0'),
@@ -35,8 +35,7 @@ class InvoiceRequest(models.Model):
     state = fields.Selection([
         ('draft',             'Draft'),
         ('in_review',         'In Review'),
-        ('submitted',         'Submitted'),
-        ('manager_approved',  'Manager Approved'),
+        ('submitted',         'Pending Finance'),
         ('finance_approved',  'Finance Approved'),
         ('rejected',          'Rejected'),
         ('cancelled',         'Cancelled'),
@@ -472,7 +471,7 @@ class InvoiceRequest(models.Model):
         else:
             self.write({'state': 'submitted'})
             self._log('submit_direct')
-            self.message_post(body=_('Invoice request submitted for manager approval.'))
+            self.message_post(body=_('Invoice request submitted for Finance approval.'))
 
     def action_approver_approve(self):
         self.ensure_one()
@@ -504,7 +503,7 @@ class InvoiceRequest(models.Model):
             self.write({'state': 'submitted'})
             self._log('chain_complete')
             self.message_post(
-                body=_('All approvers have approved. Forwarded to manager for approval.')
+                body=_('All approvers have approved. Forwarded to Finance for approval.')
             )
 
     def action_approver_reject(self):
@@ -512,19 +511,6 @@ class InvoiceRequest(models.Model):
 
     def action_approver_resubmit(self):
         return self._open_wizard('approver_resubmit', _('Resubmit to Requester'))
-
-    def action_manager_approve(self):
-        self.write({'state': 'manager_approved', 'manager_id': self.env.user.id})
-        self._log('manager_approve')
-        self.message_post(
-            body=_('Approved by manager %s. Forwarded to Finance.') % self.env.user.name
-        )
-
-    def action_manager_reject(self):
-        return self._open_wizard('manager_reject', _('Reject Invoice Request'))
-
-    def action_manager_resubmit(self):
-        return self._open_wizard('manager_resubmit', _('Resubmit to Requester'))
 
     def action_finance_approve(self):
         self.ensure_one()
