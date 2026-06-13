@@ -143,6 +143,12 @@
                                invisible="not rejection_reason"/>
                     </group>
 
+                    <!-- Payment Summary (inline, above lines) -->
+                    <div invisible="not contract_id">
+                        <separator string="Payment Summary"/>
+                        <field name="payment_summary_html" readonly="1"/>
+                    </div>
+
                     <notebook>
                         <!-- ── Invoice Lines ── -->
                         <page string="Invoice Lines">
@@ -156,6 +162,7 @@
                                     <field name="unit_price" readonly="1" force_save="1"/>
                                     <field name="contract_amount" readonly="1"/>
                                     <field name="completed_qty"/>
+                                    <field name="remaining_qty" readonly="1"/>
                                     <field name="billing_amount" readonly="1"/>
                                 </tree>
                             </field>
@@ -185,12 +192,6 @@
                             <field name="attachment_ids"
                                    widget="many2many_binary"
                                    readonly="state != 'draft'"/>
-                        </page>
-
-                        <!-- ── Payment Summary ── -->
-                        <page string="Payment Summary"
-                              invisible="not contract_id">
-                            <field name="payment_summary_html" readonly="1"/>
                         </page>
 
                         <!-- ── Notes ── -->

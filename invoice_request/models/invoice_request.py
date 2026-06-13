@@ -304,9 +304,17 @@ class InvoiceRequest(models.Model):
                 _('Please add at least one invoice line before submitting.')
             )
 
+    def _check_completed_qtys(self):
+        for line in self.line_ids:
+            if line.completed_qty > line.remaining_qty + 0.001:
+                raise ValidationError(_(
+                    'Completed QTY (%.2f) exceeds Remaining QTY (%.2f) for item "%s".'
+                ) % (line.completed_qty, line.remaining_qty, line.description or ''))
+
     # ── Workflow actions ───────────────────────────────────────────────────
     def action_submit(self):
         self._check_lines()
+        self._check_completed_qtys()
         self.write({'state': 'submitted'})
         self.message_post(body=_('Invoice request submitted for manager approval.'))
 
