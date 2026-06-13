@@ -163,58 +163,79 @@
                         <field name="payment_summary_html" readonly="1"/>
                     </div>
 
-                    <notebook>
-                        <!-- ── Invoice Lines ── -->
-                        <page string="Invoice Lines">
-                            <field name="line_ids" readonly="state != 'draft'">
-                                <tree editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="contract_line_id" invisible="1" force_save="1"/>
-                                    <field name="description" readonly="1" force_save="1"/>
-                                    <field name="qty" readonly="1" force_save="1"/>
-                                    <field name="uom" readonly="1" force_save="1"/>
-                                    <field name="unit_price" readonly="1" force_save="1"/>
-                                    <field name="contract_amount" readonly="1"/>
-                                    <field name="completed_qty"/>
-                                    <field name="remaining_qty" readonly="1"/>
-                                    <field name="billing_amount" readonly="1"/>
-                                </tree>
-                            </field>
-                            <group class="oe_subtotal_footer oe_right">
-                                <field name="total_amount"
-                                       string="Total Billing Amount" readonly="1"
-                                       widget="monetary"/>
-                            </group>
-                        </page>
+                    <!-- 2-column: notebook left, timeline right -->
+                    <div class="row g-0">
+                        <div class="col-lg-8 pe-lg-3">
+                            <notebook>
+                                <!-- ── Invoice Lines ── -->
+                                <page string="Invoice Lines">
+                                    <field name="line_ids" readonly="state != 'draft'">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="contract_line_id" invisible="1" force_save="1"/>
+                                            <field name="description" readonly="1" force_save="1"/>
+                                            <field name="qty" readonly="1" force_save="1"/>
+                                            <field name="uom" readonly="1" force_save="1"/>
+                                            <field name="unit_price" readonly="1" force_save="1"/>
+                                            <field name="contract_amount" readonly="1"/>
+                                            <field name="completed_qty"/>
+                                            <field name="remaining_qty" readonly="1"/>
+                                            <field name="billing_amount" readonly="1"/>
+                                        </tree>
+                                    </field>
+                                    <group class="oe_subtotal_footer oe_right">
+                                        <field name="total_amount"
+                                               string="Total Billing Amount" readonly="1"
+                                               widget="monetary"/>
+                                    </group>
+                                </page>
 
-                        <!-- ── Approvers ── -->
-                        <page string="Approvers">
-                            <field name="approver_ids" readonly="state != 'draft'">
-                                <tree editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="user_id"/>
-                                    <field name="status" widget="badge"
-                                           decoration-success="status == 'approved'"
-                                           decoration-danger="status == 'rejected'"
-                                           decoration-warning="status == 'pending'"/>
-                                </tree>
-                            </field>
-                        </page>
+                                <!-- ── Approvers ── -->
+                                <page string="Approvers">
+                                    <field name="approver_ids" readonly="state != 'draft'">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="user_id"/>
+                                            <field name="status" widget="badge"
+                                                   decoration-success="status == 'approved'"
+                                                   decoration-danger="status == 'rejected'"
+                                                   decoration-warning="status == 'pending'"/>
+                                        </tree>
+                                    </field>
+                                </page>
 
-                        <!-- ── Attachments ── -->
-                        <page string="Attachments">
-                            <field name="attachment_ids"
-                                   widget="many2many_binary"
-                                   readonly="state != 'draft'"/>
-                        </page>
+                                <!-- ── Attachments ── -->
+                                <page string="Attachments">
+                                    <field name="attachment_ids"
+                                           widget="many2many_binary"
+                                           readonly="state != 'draft'"/>
+                                </page>
 
-                        <!-- ── Notes ── -->
-                        <page string="Notes">
-                            <field name="notes"
-                                   placeholder="Add justification or notes for Finance..."
-                                   readonly="state != 'draft'"/>
-                        </page>
-                    </notebook>
+                                <!-- ── Notes ── -->
+                                <page string="Notes">
+                                    <field name="notes"
+                                           placeholder="Add justification or notes for Finance..."
+                                           readonly="state != 'draft'"/>
+                                </page>
+                            </notebook>
+                        </div>
+
+                        <!-- ── Workflow Timeline ── -->
+                        <div class="col-lg-4 ps-lg-3"
+                             style="border-left:1px solid #e9ecef; margin-top:8px;">
+                            <div style="padding:10px 4px 4px 4px;">
+                                <div style="font-size:12px; font-weight:700; color:#6c757d;
+                                            text-transform:uppercase; letter-spacing:.6px;
+                                            margin-bottom:12px; padding-bottom:6px;
+                                            border-bottom:1px solid #e9ecef;">
+                                    <i class="fa fa-history" style="margin-right:5px;"></i>
+                                    Workflow History
+                                </div>
+                                <field name="timeline_html" readonly="1"
+                                       style="min-height:80px;"/>
+                            </div>
+                        </div>
+                    </div>
                 </sheet>
                 <chatter/>
             </form>

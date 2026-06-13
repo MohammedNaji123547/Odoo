@@ -14,3 +14,7 @@ access_invoice_request_approver_finance,invoice.request.approver finance,model_i
 access_invoice_request_wizard_requester,invoice.request.wizard requester,model_invoice_request_wizard,group_requester,1,1,1,0
 access_invoice_request_wizard_manager,invoice.request.wizard manager,model_invoice_request_wizard,group_manager,1,1,1,0
 access_invoice_request_wizard_finance,invoice.request.wizard finance,model_invoice_request_wizard,group_finance,1,1,1,1
+access_invoice_request_log_viewer,invoice.request.log viewer,model_invoice_request_log,group_viewer,1,0,0,0
+access_invoice_request_log_requester,invoice.request.log requester,model_invoice_request_log,group_requester,1,1,1,0
+access_invoice_request_log_manager,invoice.request.log manager,model_invoice_request_log,group_manager,1,1,1,0
+access_invoice_request_log_finance,invoice.request.log finance,model_invoice_request_log,group_finance,1,1,1,1
