@@ -1,5 +1,6 @@
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError
+from markupsafe import Markup, escape
 
 
 class InvoiceRequest(models.Model):
@@ -34,10 +35,9 @@ class InvoiceRequest(models.Model):
         required=True, tracking=True
     )
 
-    # ── Source document (filtered by vendor) ───────────────────────────────
+    # ── Source document (filtered by vendor, no frame agreements) ──────────
     contract_id = fields.Many2one(
-        'contract.contract', string='Contract',
-        tracking=True,
+        'contract.contract', string='Contract', tracking=True,
     )
     analytic_account_id = fields.Many2one(
         'account.analytic.account', string='Cost Center',
@@ -59,17 +59,24 @@ class InvoiceRequest(models.Model):
         string='Request Date',
         default=fields.Date.today, readonly=True, tracking=True
     )
-    invoice_date = fields.Date(
-        string='Invoice Date', tracking=True
-    )
+    invoice_date = fields.Date(string='Invoice Date', tracking=True)
+    period_from = fields.Date(string='Period From', tracking=True)
+    period_to = fields.Date(string='Period To', tracking=True)
 
     # ── Lines & Totals ─────────────────────────────────────────────────────
     line_ids = fields.One2many(
         'invoice.request.line', 'request_id', string='Invoice Lines'
     )
     total_amount = fields.Monetary(
-        string='Total Amount',
+        string='Total Billing Amount',
         compute='_compute_total_amount', store=True
+    )
+
+    # ── Payment Summary ────────────────────────────────────────────────────
+    payment_summary_html = fields.Html(
+        string='Payment Summary',
+        compute='_compute_payment_summary_html',
+        sanitize=False,
     )
 
     # ── Approvers ──────────────────────────────────────────────────────────
@@ -112,12 +119,120 @@ class InvoiceRequest(models.Model):
     )
 
     # ── Computed ───────────────────────────────────────────────────────────
-    @api.depends('line_ids.subtotal')
+    @api.depends('line_ids.billing_amount')
     def _compute_total_amount(self):
         for rec in self:
-            rec.total_amount = sum(rec.line_ids.mapped('subtotal'))
+            rec.total_amount = sum(rec.line_ids.mapped('billing_amount'))
 
-    # ── Onchange: clear contract when vendor changes ───────────────────────
+    @api.depends('contract_id', 'state')
+    def _compute_payment_summary_html(self):
+        for rec in self:
+            if not rec.contract_id:
+                rec.payment_summary_html = Markup(
+                    '<p class="text-muted">Select a contract to see payment history.</p>'
+                )
+                continue
+
+            # Exclude the current record when saved
+            domain = [
+                ('contract_id', '=', rec.contract_id.id),
+                ('state', 'in', ['submitted', 'manager_approved', 'finance_approved']),
+            ]
+            current_id = rec.id if rec.id and not isinstance(rec.id, type(rec.id)) else False
+            try:
+                int(rec.id)
+                domain.append(('id', '!=', rec.id))
+            except (TypeError, ValueError):
+                pass
+
+            related = self.search(domain, order='request_date asc')
+
+            # Contract totals
+            contract_qty = sum(rec.contract_id.line_ids.mapped('qty'))
+            contract_value = sum(l.qty * l.unit_price for l in rec.contract_id.line_ids)
+
+            # Billed totals from related requests
+            total_completed = sum(
+                l.completed_qty for r in related for l in r.line_ids
+            )
+            total_billed = sum(r.total_amount for r in related)
+            remained_qty = contract_qty - total_completed
+            remained_value = contract_value - total_billed
+
+            state_colors = {
+                'submitted': 'warning',
+                'manager_approved': 'info',
+                'finance_approved': 'success',
+            }
+            state_labels = dict(self._fields['state'].selection)
+
+            rows = Markup('')
+            for r in related:
+                period = Markup('{} → {}').format(
+                    escape(str(r.period_from or '-')),
+                    escape(str(r.period_to or '-')),
+                )
+                r_qty = sum(r.line_ids.mapped('completed_qty'))
+                badge = state_colors.get(r.state, 'secondary')
+                label = escape(state_labels.get(r.state, r.state))
+                rows += Markup(
+                    '<tr>'
+                    '<td>{}</td><td>{}</td><td>{}</td>'
+                    '<td class="text-end">{:.2f}</td>'
+                    '<td class="text-end">{:.2f}</td>'
+                    '<td><span class="badge bg-{}">{}</span></td>'
+                    '</tr>'
+                ).format(
+                    escape(r.name), escape(str(r.request_date or '-')),
+                    period, r_qty, r.total_amount, badge, label,
+                )
+
+            if not related:
+                rows = Markup(
+                    '<tr><td colspan="6" class="text-center text-muted">'
+                    'No previous billing history for this contract.'
+                    '</td></tr>'
+                )
+
+            rec.payment_summary_html = Markup('''
+<div class="table-responsive mt-2">
+<table class="table table-sm table-bordered table-striped">
+  <thead class="table-dark text-center">
+    <tr>
+      <th>Request #</th><th>Date</th><th>Period</th>
+      <th>Completed QTY</th><th>Billed Amount</th><th>Status</th>
+    </tr>
+  </thead>
+  <tbody>{rows}</tbody>
+  <tfoot class="fw-bold">
+    <tr class="table-warning">
+      <td colspan="3">Total Billed</td>
+      <td class="text-end">{cqty:.2f}</td>
+      <td class="text-end">{tbilled:.2f}</td>
+      <td></td>
+    </tr>
+    <tr class="table-secondary">
+      <td colspan="3">Contract Total</td>
+      <td class="text-end">{tqty:.2f}</td>
+      <td class="text-end">{tval:.2f}</td>
+      <td></td>
+    </tr>
+    <tr class="table-danger">
+      <td colspan="3">Remaining</td>
+      <td class="text-end">{rqty:.2f}</td>
+      <td class="text-end">{rval:.2f}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+</div>''').format(
+                rows=rows,
+                cqty=total_completed, tbilled=total_billed,
+                tqty=contract_qty, tval=contract_value,
+                rqty=remained_qty, rval=remained_value,
+            )
+
+    # ── Onchange ───────────────────────────────────────────────────────────
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
         self.contract_id = False
@@ -125,7 +240,6 @@ class InvoiceRequest(models.Model):
         self.project_id = False
         self.line_ids = [(5, 0, 0)]
 
-    # ── Onchange: populate everything from contract ────────────────────────
     @api.onchange('contract_id')
     def _onchange_contract_id(self):
         if self.contract_id:
@@ -197,16 +311,16 @@ class InvoiceRequest(models.Model):
         self.message_post(body=_('Invoice request submitted for manager approval.'))
 
     def action_manager_approve(self):
-        self.write({
-            'state': 'manager_approved',
-            'manager_id': self.env.user.id,
-        })
+        self.write({'state': 'manager_approved', 'manager_id': self.env.user.id})
         self.message_post(
             body=_('Approved by manager %s. Forwarded to Finance.') % self.env.user.name
         )
 
     def action_manager_reject(self):
         return self._open_wizard('reject', _('Reject Invoice Request'))
+
+    def action_manager_resubmit(self):
+        return self._open_wizard('resubmit', _('Resubmit to Requester'))
 
     def action_finance_approve(self):
         self.ensure_one()
@@ -219,7 +333,7 @@ class InvoiceRequest(models.Model):
         for line in self.line_ids:
             line_vals = {
                 'name': line.description,
-                'quantity': line.qty,
+                'quantity': line.completed_qty or line.qty,
                 'price_unit': line.unit_price,
             }
             if expense_account:
@@ -239,12 +353,13 @@ class InvoiceRequest(models.Model):
             'finance_user_id': self.env.user.id,
             'vendor_bill_id': bill.id,
         })
-        self.message_post(
-            body=_('Vendor bill %s created by Finance.') % bill.name
-        )
+        self.message_post(body=_('Vendor bill %s created by Finance.') % bill.name)
 
     def action_finance_reject(self):
         return self._open_wizard('reject', _('Reject Invoice Request'))
+
+    def action_finance_resubmit(self):
+        return self._open_wizard('resubmit', _('Resubmit to Requester'))
 
     def action_cancel(self):
         return self._open_wizard('cancel', _('Cancel Invoice Request'))
