@@ -14,6 +14,8 @@
                 <field name="request_date"/>
                 <field name="partner_id"/>
                 <field name="contract_id"/>
+                <field name="period_from"/>
+                <field name="period_to"/>
                 <field name="requester_id"/>
                 <field name="total_amount" widget="monetary"/>
                 <field name="currency_id" invisible="1"/>
@@ -50,6 +52,10 @@
                             type="object" class="btn-danger"
                             invisible="state != 'submitted'"
                             groups="invoice_request.group_manager"/>
+                    <button name="action_manager_resubmit" string="Resubmit to Requester"
+                            type="object"
+                            invisible="state != 'submitted'"
+                            groups="invoice_request.group_manager"/>
 
                     <!-- MANAGER APPROVED: Finance actions -->
                     <button name="action_finance_approve" string="Approve &amp; Create Bill"
@@ -58,6 +64,10 @@
                             groups="invoice_request.group_finance"/>
                     <button name="action_finance_reject" string="Reject"
                             type="object" class="btn-danger"
+                            invisible="state != 'manager_approved'"
+                            groups="invoice_request.group_finance"/>
+                    <button name="action_finance_resubmit" string="Resubmit to Requester"
+                            type="object"
                             invisible="state != 'manager_approved'"
                             groups="invoice_request.group_finance"/>
 
@@ -71,7 +81,7 @@
                 </header>
 
                 <sheet>
-                    <!-- invisible fields for domains -->
+                    <!-- invisible fields for domains / logic -->
                     <field name="partner_id" invisible="1"/>
                     <field name="analytic_account_id" invisible="1"/>
                     <field name="project_id" invisible="1"/>
@@ -101,14 +111,14 @@
                         <group string="Request Details">
                             <field name="requester_id" readonly="1"/>
                             <field name="request_date" readonly="1"/>
-                            <field name="invoice_date"
-                                   readonly="state != 'draft'"/>
+                            <field name="invoice_date" readonly="state != 'draft'"/>
+                            <field name="period_from" readonly="state != 'draft'"/>
+                            <field name="period_to" readonly="state != 'draft'"/>
                         </group>
                         <group string="Vendor &amp; Contract">
-                            <field name="partner_id"
-                                   readonly="state != 'draft'"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
                             <field name="contract_id"
-                                   domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'completed'])]"
+                                   domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'completed']), ('contract_type', '!=', 'frame_msa')]"
                                    readonly="state != 'draft'"/>
                             <field name="analytic_account_id"
                                    readonly="1"
@@ -116,8 +126,7 @@
                             <field name="project_id"
                                    readonly="1"
                                    invisible="not project_id"/>
-                            <field name="currency_id"
-                                   readonly="state != 'draft'"/>
+                            <field name="currency_id" readonly="state != 'draft'"/>
                         </group>
                     </group>
 
@@ -137,30 +146,29 @@
                     <notebook>
                         <!-- ── Invoice Lines ── -->
                         <page string="Invoice Lines">
-                            <field name="line_ids" readonly="1">
-                                <tree>
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="contract_line_id" invisible="1"/>
-                                    <field name="description"/>
-                                    <field name="period_from"/>
-                                    <field name="period_to"/>
-                                    <field name="qty"/>
-                                    <field name="uom"/>
-                                    <field name="unit_price" force_save="1"/>
-                                    <field name="subtotal" readonly="1"/>
+                                    <field name="description" readonly="1"/>
+                                    <field name="qty" readonly="1"/>
+                                    <field name="uom" readonly="1"/>
+                                    <field name="unit_price" readonly="1" force_save="1"/>
+                                    <field name="contract_amount" readonly="1"/>
+                                    <field name="completed_qty"/>
+                                    <field name="billing_amount" readonly="1"/>
                                 </tree>
                             </field>
                             <group class="oe_subtotal_footer oe_right">
                                 <field name="total_amount"
-                                       string="Total Amount" readonly="1"
+                                       string="Total Billing Amount" readonly="1"
                                        widget="monetary"/>
                             </group>
                         </page>
 
                         <!-- ── Approvers ── -->
                         <page string="Approvers">
-                            <field name="approver_ids"
-                                   readonly="state != 'draft'">
+                            <field name="approver_ids" readonly="state != 'draft'">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="user_id"/>
@@ -177,6 +185,12 @@
                             <field name="attachment_ids"
                                    widget="many2many_binary"
                                    readonly="state != 'draft'"/>
+                        </page>
+
+                        <!-- ── Payment Summary ── -->
+                        <page string="Payment Summary"
+                              invisible="not contract_id">
+                            <field name="payment_summary_html" readonly="1"/>
                         </page>
 
                         <!-- ── Notes ── -->

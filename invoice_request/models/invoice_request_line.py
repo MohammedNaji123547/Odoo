@@ -16,20 +16,26 @@ class InvoiceRequestLine(models.Model):
     )
 
     description = fields.Char(string='Description of Work / Service', required=True)
-    qty = fields.Float(string='Quantity', default=1.0)
-    uom = fields.Char(string='Unit of Measure')
-    unit_price = fields.Float(string='Unit Price')
-    subtotal = fields.Float(
-        string='Subtotal', compute='_compute_subtotal', store=True
+    qty = fields.Float(string='Contract QTY')
+    uom = fields.Char(string='Unit')
+    unit_price = fields.Float(string='Agreed Rate')
+
+    completed_qty = fields.Float(string='Completed QTY', default=0.0)
+    billing_amount = fields.Float(
+        string='Billing Amount',
+        compute='_compute_billing_amount', store=True
+    )
+    # Contract total for this line (qty × unit_price) — reference only
+    contract_amount = fields.Float(
+        string='Contract Amount',
+        compute='_compute_billing_amount', store=True
     )
 
-    period_from = fields.Date(string='Period From')
-    period_to = fields.Date(string='Period To')
-
-    @api.depends('qty', 'unit_price')
-    def _compute_subtotal(self):
+    @api.depends('qty', 'completed_qty', 'unit_price')
+    def _compute_billing_amount(self):
         for line in self:
-            line.subtotal = line.qty * line.unit_price
+            line.billing_amount = line.completed_qty * line.unit_price
+            line.contract_amount = line.qty * line.unit_price
 
     @api.model_create_multi
     def create(self, vals_list):
