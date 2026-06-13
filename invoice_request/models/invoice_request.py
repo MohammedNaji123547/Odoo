@@ -28,18 +28,27 @@ class InvoiceRequest(models.Model):
         readonly=True, tracking=True
     )
 
-    # ── Source document ────────────────────────────────────────────────────
-    contract_id = fields.Many2one(
-        'contract.contract', string='Contract',
-        tracking=True,
-        domain="[('state', 'in', ['active', 'completed'])]"
-    )
-
-    # ── Vendor ─────────────────────────────────────────────────────────────
+    # ── Vendor (selected first) ────────────────────────────────────────────
     partner_id = fields.Many2one(
         'res.partner', string='Vendor / Contractor',
         required=True, tracking=True
     )
+
+    # ── Source document (filtered by vendor) ───────────────────────────────
+    contract_id = fields.Many2one(
+        'contract.contract', string='Contract',
+        tracking=True,
+    )
+    analytic_account_id = fields.Many2one(
+        'account.analytic.account', string='Cost Center',
+        readonly=True, tracking=True
+    )
+    project_id = fields.Many2one(
+        'project.project', string='Project / CTR',
+        readonly=True, tracking=True
+    )
+
+    # ── Currency ───────────────────────────────────────────────────────────
     currency_id = fields.Many2one(
         'res.currency', string='Currency',
         default=lambda self: self.env.company.currency_id
@@ -48,7 +57,7 @@ class InvoiceRequest(models.Model):
     # ── Dates ──────────────────────────────────────────────────────────────
     request_date = fields.Date(
         string='Request Date',
-        default=fields.Date.today, tracking=True
+        default=fields.Date.today, readonly=True, tracking=True
     )
     invoice_date = fields.Date(
         string='Invoice Date', tracking=True
@@ -61,6 +70,19 @@ class InvoiceRequest(models.Model):
     total_amount = fields.Monetary(
         string='Total Amount',
         compute='_compute_total_amount', store=True
+    )
+
+    # ── Approvers ──────────────────────────────────────────────────────────
+    approver_ids = fields.One2many(
+        'invoice.request.approver', 'request_id', string='Approvers'
+    )
+
+    # ── Attachments ────────────────────────────────────────────────────────
+    attachment_ids = fields.Many2many(
+        'ir.attachment',
+        'invoice_request_attachment_rel',
+        'request_id', 'attachment_id',
+        string='Attachments'
     )
 
     # ── Notes ──────────────────────────────────────────────────────────────
@@ -95,13 +117,33 @@ class InvoiceRequest(models.Model):
         for rec in self:
             rec.total_amount = sum(rec.line_ids.mapped('subtotal'))
 
-    # ── Onchange: populate partner from contract ───────────────────────────
+    # ── Onchange: clear contract when vendor changes ───────────────────────
+    @api.onchange('partner_id')
+    def _onchange_partner_id(self):
+        self.contract_id = False
+        self.analytic_account_id = False
+        self.project_id = False
+        self.line_ids = [(5, 0, 0)]
+
+    # ── Onchange: populate everything from contract ────────────────────────
     @api.onchange('contract_id')
     def _onchange_contract_id(self):
-        if self.contract_id and self.contract_id.partner_id:
-            self.partner_id = self.contract_id.partner_id
-        if self.contract_id and self.contract_id.currency_id:
-            self.currency_id = self.contract_id.currency_id
+        if self.contract_id:
+            self.currency_id = self.contract_id.currency_id or self.currency_id
+            self.analytic_account_id = self.contract_id.analytic_account_id
+            self.project_id = self.contract_id.project_id
+            lines = [(0, 0, {
+                'contract_line_id': l.id,
+                'description': l.description,
+                'qty': l.qty,
+                'uom': l.uom,
+                'unit_price': l.unit_price,
+            }) for l in self.contract_id.line_ids]
+            self.line_ids = [(5, 0, 0)] + lines
+        else:
+            self.analytic_account_id = False
+            self.project_id = False
+            self.line_ids = [(5, 0, 0)]
 
     # ── CRUD ───────────────────────────────────────────────────────────────
     @api.model_create_multi
@@ -167,16 +209,12 @@ class InvoiceRequest(models.Model):
         return self._open_wizard('reject', _('Reject Invoice Request'))
 
     def action_finance_approve(self):
-        """Create the vendor bill and link it to this request."""
         self.ensure_one()
-
-        # Find a default expense account for the bill lines
         expense_account = self.env['account.account'].search([
             ('account_type', '=', 'expense'),
             ('company_id', '=', self.env.company.id),
             ('deprecated', '=', False),
         ], limit=1)
-
         invoice_lines = []
         for line in self.line_ids:
             line_vals = {
@@ -187,7 +225,6 @@ class InvoiceRequest(models.Model):
             if expense_account:
                 line_vals['account_id'] = expense_account.id
             invoice_lines.append((0, 0, line_vals))
-
         bill = self.env['account.move'].create({
             'move_type': 'in_invoice',
             'partner_id': self.partner_id.id,
@@ -197,7 +234,6 @@ class InvoiceRequest(models.Model):
             'currency_id': self.currency_id.id,
             'invoice_line_ids': invoice_lines,
         })
-
         self.write({
             'state': 'finance_approved',
             'finance_user_id': self.env.user.id,
@@ -218,7 +254,6 @@ class InvoiceRequest(models.Model):
         self.message_post(body=_('Reset to Draft.'))
 
     def action_open_bill(self):
-        """Smart button to open the linked vendor bill."""
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',

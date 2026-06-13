@@ -71,6 +71,11 @@
                 </header>
 
                 <sheet>
+                    <!-- invisible fields for domains -->
+                    <field name="partner_id" invisible="1"/>
+                    <field name="analytic_account_id" invisible="1"/>
+                    <field name="project_id" invisible="1"/>
+
                     <!-- Smart button: linked vendor bill -->
                     <div class="oe_button_box" name="button_box">
                         <button name="action_open_bill" type="object"
@@ -95,22 +100,28 @@
                     <group>
                         <group string="Request Details">
                             <field name="requester_id" readonly="1"/>
-                            <field name="request_date"
-                                   readonly="state != 'draft'"/>
-                            <field name="contract_id"
+                            <field name="request_date" readonly="1"/>
+                            <field name="invoice_date"
                                    readonly="state != 'draft'"/>
                         </group>
-                        <group string="Vendor &amp; Payment">
+                        <group string="Vendor &amp; Contract">
                             <field name="partner_id"
                                    readonly="state != 'draft'"/>
-                            <field name="currency_id"
+                            <field name="contract_id"
+                                   domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'completed'])]"
                                    readonly="state != 'draft'"/>
-                            <field name="invoice_date"
+                            <field name="analytic_account_id"
+                                   readonly="1"
+                                   invisible="not analytic_account_id"/>
+                            <field name="project_id"
+                                   readonly="1"
+                                   invisible="not project_id"/>
+                            <field name="currency_id"
                                    readonly="state != 'draft'"/>
                         </group>
                     </group>
 
-                    <!-- Approval info (shown after submission) -->
+                    <!-- Approval info -->
                     <group string="Approval Information"
                            invisible="state == 'draft'">
                         <field name="manager_id" readonly="1"
@@ -124,17 +135,18 @@
                     </group>
 
                     <notebook>
+                        <!-- ── Invoice Lines ── -->
                         <page string="Invoice Lines">
-                            <field name="line_ids"
-                                   readonly="state != 'draft'">
-                                <tree editable="bottom">
+                            <field name="line_ids" readonly="1">
+                                <tree>
                                     <field name="sequence" widget="handle"/>
+                                    <field name="contract_line_id" invisible="1"/>
                                     <field name="description"/>
                                     <field name="period_from"/>
                                     <field name="period_to"/>
                                     <field name="qty"/>
                                     <field name="uom"/>
-                                    <field name="unit_price"/>
+                                    <field name="unit_price" force_save="1"/>
                                     <field name="subtotal" readonly="1"/>
                                 </tree>
                             </field>
@@ -145,6 +157,29 @@
                             </group>
                         </page>
 
+                        <!-- ── Approvers ── -->
+                        <page string="Approvers">
+                            <field name="approver_ids"
+                                   readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="user_id"/>
+                                    <field name="status" widget="badge"
+                                           decoration-success="status == 'approved'"
+                                           decoration-danger="status == 'rejected'"
+                                           decoration-warning="status == 'pending'"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <!-- ── Attachments ── -->
+                        <page string="Attachments">
+                            <field name="attachment_ids"
+                                   widget="many2many_binary"
+                                   readonly="state != 'draft'"/>
+                        </page>
+
+                        <!-- ── Notes ── -->
                         <page string="Notes">
                             <field name="notes"
                                    placeholder="Add justification or notes for Finance..."
