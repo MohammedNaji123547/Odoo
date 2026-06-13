@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_invoice_request" model="ir.module.category">
+        <field name="name">Invoice Request</field>
+        <field name="sequence">55</field>
+    </record>
+
+    <!-- Viewer: read-only access -->
+    <record id="group_viewer" model="res.groups">
+        <field name="name">Viewer</field>
+        <field name="category_id" ref="module_category_invoice_request"/>
+    </record>
+
+    <!-- Requester: can create and submit -->
+    <record id="group_requester" model="res.groups">
+        <field name="name">Requester</field>
+        <field name="category_id" ref="module_category_invoice_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_viewer'))]"/>
+    </record>
+
+    <!-- Manager: can approve/reject after submission -->
+    <record id="group_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="category_id" ref="module_category_invoice_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_requester'))]"/>
+    </record>
+
+    <!-- Finance: final approval and bill creation -->
+    <record id="group_finance" model="res.groups">
+        <field name="name">Finance</field>
+        <field name="category_id" ref="module_category_invoice_request"/>
+        <field name="implied_ids" eval="[(4, ref('group_manager'))]"/>
+    </record>
+</odoo>
