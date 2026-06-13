@@ -176,7 +176,8 @@
                                     <field name="unit_price"
                                         string="Agreed Rate"
                                         column_invisible="parent.contract_type in ('daywork_tm','lump_sum_ctr') and parent.state not in ('finalization','active','completed')"
-                                        readonly="parent.contract_type == 'unit_rate_ctr'"/>
+                                        readonly="parent.contract_type == 'unit_rate_ctr'"
+                                        force_save="1"/>
                                     <field name="subtotal"
                                         column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
                                         readonly="1"/>
