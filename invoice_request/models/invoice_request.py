@@ -15,6 +15,7 @@ class InvoiceRequest(models.Model):
     )
     state = fields.Selection([
         ('draft',             'Draft'),
+        ('in_review',         'In Review'),
         ('submitted',         'Submitted'),
         ('manager_approved',  'Manager Approved'),
         ('finance_approved',  'Finance Approved'),
@@ -83,6 +84,13 @@ class InvoiceRequest(models.Model):
     approver_ids = fields.One2many(
         'invoice.request.approver', 'request_id', string='Approvers'
     )
+    current_approver_id = fields.Many2one(
+        'res.users', string='Current Approver',
+        compute='_compute_current_approver', store=True,
+    )
+    is_current_approver = fields.Boolean(
+        compute='_compute_is_current_approver',
+    )
 
     # ── Attachments ────────────────────────────────────────────────────────
     attachment_ids = fields.Many2many(
@@ -119,6 +127,28 @@ class InvoiceRequest(models.Model):
     )
 
     # ── Computed ───────────────────────────────────────────────────────────
+    @api.depends('approver_ids.status', 'state')
+    def _compute_current_approver(self):
+        for rec in self:
+            if rec.state != 'in_review':
+                rec.current_approver_id = False
+                continue
+            pending = rec.approver_ids.filtered(
+                lambda a: a.status == 'pending'
+            ).sorted('sequence')
+            rec.current_approver_id = pending[0].user_id if pending else False
+
+    @api.depends('current_approver_id', 'state')
+    @api.depends_context('uid')
+    def _compute_is_current_approver(self):
+        uid = self.env.user.id
+        for rec in self:
+            rec.is_current_approver = (
+                rec.state == 'in_review'
+                and bool(rec.current_approver_id)
+                and rec.current_approver_id.id == uid
+            )
+
     @api.depends('line_ids.billing_amount')
     def _compute_total_amount(self):
         for rec in self:
@@ -315,8 +345,52 @@ class InvoiceRequest(models.Model):
     def action_submit(self):
         self._check_lines()
         self._check_completed_qtys()
-        self.write({'state': 'submitted'})
-        self.message_post(body=_('Invoice request submitted for manager approval.'))
+        if self.approver_ids:
+            # Reset all statuses and start the review chain
+            self.approver_ids.write({'status': 'pending'})
+            self.write({'state': 'in_review'})
+            first = self.approver_ids.sorted('sequence')[0]
+            self.message_post(
+                body=_('Submitted for review. Pending approval from %s.') % first.user_id.name,
+                partner_ids=[first.user_id.partner_id.id],
+            )
+        else:
+            self.write({'state': 'submitted'})
+            self.message_post(body=_('Invoice request submitted for manager approval.'))
+
+    def action_approver_approve(self):
+        self.ensure_one()
+        current = self.approver_ids.filtered(
+            lambda a: a.user_id == self.env.user and a.status == 'pending'
+        )
+        if not current:
+            raise ValidationError(_('You are not the current approver for this request.'))
+        current[:1].write({'status': 'approved'})
+
+        next_pending = self.approver_ids.filtered(
+            lambda a: a.status == 'pending'
+        ).sorted('sequence')
+
+        if next_pending:
+            next_a = next_pending[0]
+            self.message_post(
+                body=_('Approved by %s. Pending approval from %s.') % (
+                    self.env.user.name, next_a.user_id.name
+                ),
+                partner_ids=[next_a.user_id.partner_id.id],
+            )
+        else:
+            # All approvers done → move to manager stage
+            self.write({'state': 'submitted'})
+            self.message_post(
+                body=_('All approvers have approved. Forwarded to manager for approval.')
+            )
+
+    def action_approver_reject(self):
+        return self._open_wizard('approver_reject', _('Reject Invoice Request'))
+
+    def action_approver_resubmit(self):
+        return self._open_wizard('approver_resubmit', _('Resubmit to Requester'))
 
     def action_manager_approve(self):
         self.write({'state': 'manager_approved', 'manager_id': self.env.user.id})

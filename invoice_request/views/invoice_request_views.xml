@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <tree string="Invoice Requests"
                   decoration-info="state == 'draft'"
+                  decoration-muted="state == 'in_review'"
                   decoration-warning="state in ('submitted', 'manager_approved')"
                   decoration-success="state == 'finance_approved'"
                   decoration-danger="state in ('rejected', 'cancelled')">
@@ -43,6 +44,17 @@
                             type="object"
                             invisible="state != 'draft'"/>
 
+                    <!-- IN REVIEW: Current approver actions (user-specific) -->
+                    <button name="action_approver_approve" string="Approve"
+                            type="object" class="btn-success"
+                            invisible="not is_current_approver"/>
+                    <button name="action_approver_reject" string="Reject"
+                            type="object" class="btn-danger"
+                            invisible="not is_current_approver"/>
+                    <button name="action_approver_resubmit" string="Resubmit to Requester"
+                            type="object"
+                            invisible="not is_current_approver"/>
+
                     <!-- SUBMITTED: Manager actions -->
                     <button name="action_manager_approve" string="Approve"
                             type="object" class="btn-success"
@@ -77,7 +89,7 @@
                             invisible="state not in ('rejected', 'cancelled')"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,submitted,manager_approved,finance_approved"/>
+                           statusbar_visible="draft,in_review,submitted,manager_approved,finance_approved"/>
                 </header>
 
                 <sheet>
@@ -85,6 +97,8 @@
                     <field name="partner_id" invisible="1"/>
                     <field name="analytic_account_id" invisible="1"/>
                     <field name="project_id" invisible="1"/>
+                    <field name="is_current_approver" invisible="1"/>
+                    <field name="current_approver_id" invisible="1"/>
 
                     <!-- Smart button: linked vendor bill -->
                     <div class="oe_button_box" name="button_box">
@@ -219,6 +233,8 @@
                 <field name="requester_id"/>
                 <filter string="My Requests" name="my_requests"
                         domain="[('requester_id', '=', uid)]"/>
+                <filter string="In Review" name="in_review"
+                        domain="[('state', '=', 'in_review')]"/>
                 <filter string="Submitted" name="submitted"
                         domain="[('state', '=', 'submitted')]"/>
                 <filter string="Pending Manager" name="pending_manager"

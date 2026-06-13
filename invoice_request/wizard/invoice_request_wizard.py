@@ -38,4 +38,20 @@ class InvoiceRequestWizard(models.TransientModel):
             request.message_post(
                 body=_('Resubmitted to requester by %s: %s') % (self.env.user.name, self.reason)
             )
+        elif self.action_code == 'approver_reject':
+            current = request.approver_ids.filtered(
+                lambda a: a.user_id == self.env.user and a.status == 'pending'
+            )
+            if current:
+                current[:1].write({'status': 'rejected'})
+            request.write({'state': 'rejected', 'rejection_reason': self.reason})
+            request.message_post(
+                body=_('Rejected by approver %s: %s') % (self.env.user.name, self.reason)
+            )
+        elif self.action_code == 'approver_resubmit':
+            request.approver_ids.write({'status': 'pending'})
+            request.write({'state': 'draft', 'rejection_reason': self.reason})
+            request.message_post(
+                body=_('Resubmitted to requester by approver %s: %s') % (self.env.user.name, self.reason)
+            )
         return {'type': 'ir.actions.act_window_close'}
