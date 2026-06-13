@@ -192,6 +192,7 @@ class ContractContract(models.Model):
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
         if self.parent_frame_id:
+            self.partner_id = self.parent_frame_id.partner_id
             lines = [(0, 0, {
                 'description': l.description,
                 'uom': l.uom,
@@ -201,6 +202,7 @@ class ContractContract(models.Model):
             }) for l in self.parent_frame_id.line_ids]
             self.line_ids = [(5, 0, 0)] + lines
         else:
+            self.partner_id = False
             self.line_ids = [(5, 0, 0)]
 
     @api.onchange('contractor_id')
