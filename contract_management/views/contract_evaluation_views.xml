@@ -16,7 +16,8 @@
                         <tree editable="bottom"
                               decoration-success="profitability &gt; 0"
                               decoration-danger="profitability &lt; 0">
-                            <field name="contract_line_id" string="BOQ Item"/>
+                            <field name="contract_line_id"
+                                   domain="[('contract_id', '=', parent.contract_id)]"/>
                             <field name="description"/>
                             <field name="qty"/>
                             <field name="uom"/>
