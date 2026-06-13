@@ -175,11 +175,47 @@ class ContractContract(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            # Auto-fill partner from frame agreement for Unit Rate CTR
+            if (vals.get('contract_type') == 'unit_rate_ctr'
+                    and vals.get('parent_frame_id')
+                    and not vals.get('partner_id')):
+                frame = self.env['contract.contract'].browse(vals['parent_frame_id'])
+                if frame.partner_id:
+                    vals['partner_id'] = frame.partner_id.id
+            # Generate type-specific contract number
             if vals.get('name', _('New')) == _('New'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
+                ctype = vals.get('contract_type', '')
+                seq_map = {
+                    'frame_msa': 'contract.frame_msa',
+                    'lump_sum_ctr': 'contract.lump_sum_ctr',
+                    'daywork_tm': 'contract.daywork_tm',
+                }
+                if ctype in seq_map:
+                    vals['name'] = (
+                        self.env['ir.sequence'].next_by_code(seq_map[ctype]) or _('New')
+                    )
+                elif ctype == 'unit_rate_ctr':
+                    parent_id = vals.get('parent_frame_id')
+                    if parent_id:
+                        parent = self.env['contract.contract'].browse(parent_id)
+                        count = self.search_count([
+                            ('contract_type', '=', 'unit_rate_ctr'),
+                            ('parent_frame_id', '=', parent_id),
+                        ])
+                        vals['name'] = f"CTR-{parent.name}-{count + 1:02d}"
+                    else:
+                        vals['name'] = _('New')
         return super().create(vals_list)
 
     def write(self, vals):
+        # Auto-fill partner from frame agreement when parent_frame_id is saved
+        if 'parent_frame_id' in vals and vals.get('parent_frame_id'):
+            frame = self.env['contract.contract'].browse(vals['parent_frame_id'])
+            if frame.partner_id:
+                for rec in self:
+                    if rec.contract_type == 'unit_rate_ctr':
+                        vals = dict(vals, partner_id=frame.partner_id.id)
+                        break
         res = super().write(vals)
         if 'responsible_id' in vals:
             for rec in self:

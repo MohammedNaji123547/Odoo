@@ -117,6 +117,7 @@
                 <sheet>
                     <!-- invisible fields used in domains / logic -->
                     <field name="evaluated_partner_ids" invisible="1"/>
+                    <field name="partner_id" invisible="1"/>
 
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
