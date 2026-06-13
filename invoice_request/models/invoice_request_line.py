@@ -1,4 +1,5 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
 
 
 class InvoiceRequestLine(models.Model):
@@ -21,6 +22,10 @@ class InvoiceRequestLine(models.Model):
     unit_price = fields.Float(string='Agreed Rate')
 
     completed_qty = fields.Float(string='Completed QTY', default=0.0)
+    remaining_qty = fields.Float(
+        string='Remaining QTY',
+        compute='_compute_remaining_qty',
+    )
     billing_amount = fields.Float(
         string='Billing Amount',
         compute='_compute_billing_amount', store=True
@@ -36,6 +41,22 @@ class InvoiceRequestLine(models.Model):
         for line in self:
             line.billing_amount = line.completed_qty * line.unit_price
             line.contract_amount = line.qty * line.unit_price
+
+    @api.depends('contract_line_id', 'qty', 'request_id.state')
+    def _compute_remaining_qty(self):
+        for line in self:
+            if not line.contract_line_id:
+                line.remaining_qty = line.qty
+                continue
+            # Sum completed_qty from all finance-approved requests for this contract line
+            # excluding lines from the current request
+            approved = self.search([
+                ('contract_line_id', '=', line.contract_line_id.id),
+                ('request_id.state', '=', 'finance_approved'),
+                ('request_id', '!=', line.request_id.id if line.request_id.id else False),
+            ])
+            already_billed = sum(approved.mapped('completed_qty'))
+            line.remaining_qty = line.qty - already_billed
 
     @api.model_create_multi
     def create(self, vals_list):
