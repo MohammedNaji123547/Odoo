@@ -7,6 +7,10 @@ access_invoice_request_line_viewer,invoice.request.line viewer,model_invoice_req
 access_invoice_request_line_requester,invoice.request.line requester,model_invoice_request_line,group_requester,1,1,1,0
 access_invoice_request_line_manager,invoice.request.line manager,model_invoice_request_line,group_manager,1,1,1,0
 access_invoice_request_line_finance,invoice.request.line finance,model_invoice_request_line,group_finance,1,1,1,1
+access_invoice_request_approver_viewer,invoice.request.approver viewer,model_invoice_request_approver,group_viewer,1,0,0,0
+access_invoice_request_approver_requester,invoice.request.approver requester,model_invoice_request_approver,group_requester,1,1,1,0
+access_invoice_request_approver_manager,invoice.request.approver manager,model_invoice_request_approver,group_manager,1,1,1,0
+access_invoice_request_approver_finance,invoice.request.approver finance,model_invoice_request_approver,group_finance,1,1,1,1
 access_invoice_request_wizard_requester,invoice.request.wizard requester,model_invoice_request_wizard,group_requester,1,1,1,0
 access_invoice_request_wizard_manager,invoice.request.wizard manager,model_invoice_request_wizard,group_manager,1,1,1,0
 access_invoice_request_wizard_finance,invoice.request.wizard finance,model_invoice_request_wizard,group_finance,1,1,1,1
