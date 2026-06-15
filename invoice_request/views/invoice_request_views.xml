@@ -121,11 +121,9 @@
                                    domain="[('partner_id', '=', partner_id), ('state', 'in', ['active', 'completed']), ('contract_type', '!=', 'frame_msa')]"
                                    readonly="state != 'draft'"/>
                             <field name="analytic_account_id"
-                                   readonly="1"
-                                   invisible="not analytic_account_id"/>
+                                   readonly="1"/>
                             <field name="project_id"
-                                   readonly="1"
-                                   invisible="not project_id"/>
+                                   readonly="1"/>
                             <field name="currency_id" readonly="state != 'draft'"/>
                         </group>
                     </group>
