@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         VENDOR BILL — inherit account.view_move_form
+         Adds: Invoice Request link (auto-fills contract, cost center, period)
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_move_bill_ext" model="ir.ui.view">
+        <field name="name">account.move.bill.ext</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+
+            <!-- Insert our custom group after the main header reference field -->
+            <xpath expr="//field[@name='ref']" position="after">
+
+                <!-- VENDOR BILL SECTION -->
+                <group string="Invoice Request Details"
+                       invisible="move_type not in ('in_invoice', 'in_refund')">
+                    <group>
+                        <field name="invoice_request_id"
+                               options="{'no_create': True, 'no_open': True}"/>
+                        <field name="contract_id"
+                               options="{'no_create': True}"
+                               readonly="invoice_request_id != False"/>
+                    </group>
+                    <group>
+                        <field name="period_from"
+                               readonly="invoice_request_id != False"/>
+                        <field name="period_to"
+                               readonly="invoice_request_id != False"/>
+                    </group>
+                    <group>
+                        <field name="cost_center_id"
+                               readonly="invoice_request_id != False"
+                               options="{'no_create': True}"/>
+                    </group>
+                </group>
+
+                <!-- CUSTOMER INVOICE SECTION -->
+                <group string="Invoice Details"
+                       invisible="move_type not in ('out_invoice', 'out_refund')">
+                    <group>
+                        <field name="contract_id"
+                               options="{'no_create': True}"/>
+                        <field name="project_id"
+                               options="{'no_create': True}"/>
+                    </group>
+                    <group>
+                        <field name="period_from"/>
+                        <field name="period_to"/>
+                    </group>
+                    <group>
+                        <field name="cost_center_id"
+                               options="{'no_create': True}"/>
+                    </group>
+                </group>
+
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
