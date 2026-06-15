@@ -60,11 +60,13 @@ class InvoiceRequest(models.Model):
     )
     analytic_account_id = fields.Many2one(
         'account.analytic.account', string='Cost Center',
-        readonly=True, tracking=True
+        related='contract_id.analytic_account_id',
+        readonly=True, store=True, tracking=True
     )
     project_id = fields.Many2one(
         'project.project', string='Project / CTR',
-        readonly=True, tracking=True
+        related='contract_id.project_id',
+        readonly=True, store=True, tracking=True
     )
 
     # ── Currency ───────────────────────────────────────────────────────────
@@ -368,16 +370,12 @@ class InvoiceRequest(models.Model):
     @api.onchange('partner_id')
     def _onchange_partner_id(self):
         self.contract_id = False
-        self.analytic_account_id = False
-        self.project_id = False
         self.line_ids = [(5, 0, 0)]
 
     @api.onchange('contract_id')
     def _onchange_contract_id(self):
         if self.contract_id:
             self.currency_id = self.contract_id.currency_id or self.currency_id
-            self.analytic_account_id = self.contract_id.analytic_account_id
-            self.project_id = self.contract_id.project_id
             lines = [(0, 0, {
                 'contract_line_id': l.id,
                 'description': l.description,
@@ -387,8 +385,6 @@ class InvoiceRequest(models.Model):
             }) for l in self.contract_id.line_ids]
             self.line_ids = [(5, 0, 0)] + lines
         else:
-            self.analytic_account_id = False
-            self.project_id = False
             self.line_ids = [(5, 0, 0)]
 
     # ── CRUD ───────────────────────────────────────────────────────────────
