@@ -18,5 +18,7 @@ class InvoiceRequest(models.Model):
                 vals['period_to'] = rec.period_to
             if rec.analytic_account_id:
                 vals['cost_center_id'] = rec.analytic_account_id.id
+            if rec.project_id:
+                vals['project_id'] = rec.project_id.id
             rec.vendor_bill_id.write(vals)
         return res
