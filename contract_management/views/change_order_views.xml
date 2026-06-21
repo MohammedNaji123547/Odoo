@@ -39,6 +39,13 @@
                             invisible="state not in ('rejected',)"
                             groups="contract_management.group_management"/>
 
+                    <!-- Print -->
+                    <button name="%(contract_management.action_report_change_order)d"
+                            string="Print Change Order"
+                            type="action"
+                            invisible="state not in ('finalization', 'approved')"
+                            class="btn-secondary"/>
+
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,pending_approval,finalization,approved"/>
                 </header>
