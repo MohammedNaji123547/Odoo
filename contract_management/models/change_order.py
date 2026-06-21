@@ -26,7 +26,6 @@ class ChangeOrder(models.Model):
     # ── Contract link ─────────────────────────────────────────────────────────
     partner_id = fields.Many2one(
         'res.partner', string='Contractor', tracking=True,
-        readonly="state != 'draft'",
     )
     contract_id = fields.Many2one(
         'contract.contract', string='Contract', required=True,
@@ -34,7 +33,6 @@ class ChangeOrder(models.Model):
                "('state', 'in', ['active', 'completed']), "
                "('partner_id', '=', partner_id)]",
         tracking=True,
-        readonly="state != 'draft'",
     )
     contract_type = fields.Selection(
         related='contract_id.contract_type', readonly=True, store=True,
