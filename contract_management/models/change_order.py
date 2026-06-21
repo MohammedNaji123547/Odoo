@@ -329,7 +329,7 @@ class ChangeOrder(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_action': 'co_reject',
+                'default_action_code': 'co_reject',
                 'default_co_id': self.id,
             },
         }
@@ -342,7 +342,7 @@ class ChangeOrder(models.Model):
             'view_mode': 'form',
             'target': 'new',
             'context': {
-                'default_action': 'co_resubmit',
+                'default_action_code': 'co_resubmit',
                 'default_co_id': self.id,
             },
         }
