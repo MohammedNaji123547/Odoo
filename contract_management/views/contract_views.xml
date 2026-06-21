@@ -267,7 +267,7 @@
                                         <tree decoration-success="co_state == 'approved'"
                                               decoration-warning="co_state == 'pending_approval'"
                                               decoration-danger="co_state == 'rejected'">
-                                            <field name="co_name" string="Change Order No."/>
+                                            <field name="co_name" string="CO Number"/>
                                             <field name="co_date" string="CO Date"/>
                                             <field name="original_description" string="Work Item Name"/>
                                             <field name="original_qty" string="Original Qty"/>

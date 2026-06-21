@@ -74,7 +74,7 @@ class ChangeOrderLine(models.Model):
     )
     co_name = fields.Char(
         related='change_order_id.name', store=True, readonly=True,
-        string='Change Order',
+        string='CO Number',
     )
     co_date = fields.Date(
         related='change_order_id.date', store=True, readonly=True,
