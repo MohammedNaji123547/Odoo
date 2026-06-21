@@ -41,6 +41,7 @@
         <field name="arch" type="xml">
             <!-- Insert the Revised Contract Summary section after the notebook -->
             <xpath expr="//div[@style[contains(.,'display:flex')]]" position="after">
+                <field name="approved_co_count" invisible="1"/>
                 <div invisible="contract_type not in ('lump_sum_ctr', 'unit_rate_ctr') or approved_co_count == 0"
                      style="margin-top:20px;">
                     <div style="font-weight:700;font-size:13px;letter-spacing:.5px;
