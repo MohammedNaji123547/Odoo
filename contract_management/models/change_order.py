@@ -38,9 +38,14 @@ class ChangeOrder(models.Model):
         related='contract_id.contract_type', readonly=True, store=True,
     )
     original_contract_value = fields.Monetary(
-        related='contract_id.value', string='Original Contract Value',
-        readonly=True,
+        string='Original Contract Value',
+        compute='_compute_original_contract_value', store=True,
     )
+
+    @api.depends('contract_id.lines_total')
+    def _compute_original_contract_value(self):
+        for co in self:
+            co.original_contract_value = co.contract_id.lines_total or 0.0
     currency_id = fields.Many2one(
         related='contract_id.currency_id', readonly=True,
     )
