@@ -10,4 +10,11 @@
               parent="menu_contract_root"
               action="action_contract_contract"
               sequence="10"/>
+
+    <menuitem id="menu_change_orders"
+              name="Change Orders"
+              parent="menu_contract_root"
+              action="contract_management.action_change_order"
+              sequence="20"
+              groups="contract_management.group_viewer"/>
 </odoo>

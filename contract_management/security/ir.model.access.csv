@@ -16,6 +16,15 @@ access_eval_line_mgmt,eval line mgmt,model_contract_evaluation_line,contract_man
 access_approver_viewer,approver viewer,model_contract_approver,contract_management.group_viewer,1,0,0,0
 access_approver_team,approver team,model_contract_approver,contract_management.group_subcontractor_team,1,1,1,1
 access_approver_mgmt,approver mgmt,model_contract_approver,contract_management.group_management,1,1,1,1
+access_co_viewer,co viewer,model_contract_change_order,contract_management.group_viewer,1,0,0,0
+access_co_team,co team,model_contract_change_order,contract_management.group_subcontractor_team,1,1,1,0
+access_co_mgmt,co mgmt,model_contract_change_order,contract_management.group_management,1,1,1,1
+access_co_line_viewer,co line viewer,model_contract_change_order_line,contract_management.group_viewer,1,0,0,0
+access_co_line_team,co line team,model_contract_change_order_line,contract_management.group_subcontractor_team,1,1,1,0
+access_co_line_mgmt,co line mgmt,model_contract_change_order_line,contract_management.group_management,1,1,1,1
+access_co_approver_viewer,co approver viewer,model_contract_change_order_approver,contract_management.group_viewer,1,0,0,0
+access_co_approver_team,co approver team,model_contract_change_order_approver,contract_management.group_subcontractor_team,1,1,1,0
+access_co_approver_mgmt,co approver mgmt,model_contract_change_order_approver,contract_management.group_management,1,1,1,1
 access_wizard,wizard,model_contract_justification_wizard,base.group_user,1,1,1,1
 access_log_viewer,log viewer,model_contract_log,contract_management.group_viewer,1,0,0,0
 access_log_requester,log requester,model_contract_log,contract_management.group_requester,1,1,1,0
