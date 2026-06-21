@@ -108,6 +108,23 @@ class ContractContract(models.Model):
         compute='_compute_revised_contract_html',
         sanitize=False,
     )
+    # ── CO summary (stored — filterable/sortable in list view) ────────────────
+    approved_co_count = fields.Integer(
+        string='Approved COs',
+        compute='_compute_co_summary', store=True,
+    )
+    total_co_change_value = fields.Monetary(
+        string='Total Change Value',
+        compute='_compute_co_summary', store=True,
+    )
+    co_change_percentage = fields.Float(
+        string='Change %',
+        compute='_compute_co_summary', store=True, digits=(16, 2),
+    )
+    revised_contract_value = fields.Monetary(
+        string='Revised Contract Value',
+        compute='_compute_co_summary', store=True,
+    )
     evaluation_ids = fields.One2many('contract.evaluation', 'contract_id', string='Evaluations')
 
     # ── Approvers ──────────────────────────────────────────────────────────
@@ -143,6 +160,18 @@ class ContractContract(models.Model):
     def _compute_lines_total(self):
         for rec in self:
             rec.lines_total = sum(rec.line_ids.mapped('subtotal'))
+
+    @api.depends('change_order_ids.state', 'change_order_ids.total_change_value',
+                 'lines_total')
+    def _compute_co_summary(self):
+        for rec in self:
+            approved = rec.change_order_ids.filtered(lambda co: co.state == 'approved')
+            rec.approved_co_count = len(approved)
+            total_cv = sum(approved.mapped('total_change_value'))
+            rec.total_co_change_value = total_cv
+            orig = rec.lines_total or 0.0
+            rec.revised_contract_value = orig + total_cv
+            rec.co_change_percentage = (total_cv / orig * 100) if orig else 0.0
 
     @api.depends('line_ids', 'line_ids.qty', 'line_ids.unit_price',
                  'change_order_ids.state', 'change_order_ids.line_ids',

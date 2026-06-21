@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         LIST VIEW — Revised Contracts
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_revised_contract_list" model="ir.ui.view">
+        <field name="name">contract.contract.revised.list</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <tree string="Revised Contracts"
+                  decoration-success="co_change_percentage &gt; 0"
+                  decoration-danger="co_change_percentage &gt; 20">
+                <field name="name" string="Contract No."/>
+                <field name="title"/>
+                <field name="partner_id" string="Contractor"/>
+                <field name="contract_type"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-warning="state == 'pending_approval'"
+                       decoration-muted="state == 'completed'"/>
+                <field name="lines_total" string="Original Value" sum="Total Original"/>
+                <field name="approved_co_count" string="Approved COs"/>
+                <field name="total_co_change_value" string="Total Change Value"
+                       sum="Total Change"/>
+                <field name="co_change_percentage" string="Change %"/>
+                <field name="revised_contract_value" string="Revised Value"
+                       sum="Total Revised"/>
+                <field name="currency_id" invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         FORM VIEW — Revised Contract detail (reuses existing form + adds summary)
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_revised_contract_form" model="ir.ui.view">
+        <field name="name">contract.contract.revised.form</field>
+        <field name="model">contract.contract</field>
+        <field name="inherit_id" ref="contract_management.view_contract_form"/>
+        <field name="arch" type="xml">
+            <!-- Insert the Revised Contract Summary section after the notebook -->
+            <xpath expr="//div[@style[contains(.,'display:flex')]]" position="after">
+                <div invisible="contract_type not in ('lump_sum_ctr', 'unit_rate_ctr') or approved_co_count == 0"
+                     style="margin-top:20px;">
+                    <div style="font-weight:700;font-size:13px;letter-spacing:.5px;
+                                text-transform:uppercase;color:#2c3e50;
+                                border-bottom:2px solid #2c3e50;
+                                padding-bottom:6px;margin-bottom:12px;">
+                        REVISED CONTRACT SUMMARY
+                    </div>
+                    <field name="revised_contract_html" readonly="1" nolabel="1"/>
+                </div>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         SEARCH VIEW
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="view_revised_contract_search" model="ir.ui.view">
+        <field name="name">contract.contract.revised.search</field>
+        <field name="model">contract.contract</field>
+        <field name="arch" type="xml">
+            <search string="Revised Contracts">
+                <field name="name" string="Contract No."/>
+                <field name="title"/>
+                <field name="partner_id" string="Contractor"/>
+                <separator/>
+                <filter name="lump_sum"   string="Lump Sum CTR"
+                        domain="[('contract_type','=','lump_sum_ctr')]"/>
+                <filter name="unit_rate"  string="Unit Rate CTR"
+                        domain="[('contract_type','=','unit_rate_ctr')]"/>
+                <separator/>
+                <filter name="has_co"     string="Has Approved COs"
+                        domain="[('approved_co_count','&gt;',0)]"/>
+                <filter name="over_20"    string="Change &gt; 20%"
+                        domain="[('co_change_percentage','&gt;',20)]"/>
+                <separator/>
+                <filter name="active"     string="Active"
+                        domain="[('state','=','active')]"/>
+                <filter name="completed"  string="Completed"
+                        domain="[('state','=','completed')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_type"       string="Contract Type"
+                            context="{'group_by': 'contract_type'}"/>
+                    <filter name="group_partner"    string="Contractor"
+                            context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state"      string="Status"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         ACTION
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_revised_contract" model="ir.actions.act_window">
+        <field name="name">Revised Contracts</field>
+        <field name="res_model">contract.contract</field>
+        <field name="view_mode">tree,form</field>
+        <field name="view_ids" eval="[(5,0,0),
+            (0,0,{'view_mode':'tree','view_id':ref('view_revised_contract_list')}),
+            (0,0,{'view_mode':'form','view_id':ref('view_contract_form')})]"/>
+        <field name="search_view_id" ref="view_revised_contract_search"/>
+        <field name="domain">[('contract_type','in',['lump_sum_ctr','unit_rate_ctr'])]</field>
+        <field name="context">{'search_default_has_co': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No revised contracts yet</p>
+            <p>Contracts with approved Change Orders will appear here with their revised values.</p>
+        </field>
+    </record>
+
+</odoo>
