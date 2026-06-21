@@ -17,22 +17,35 @@ class ChangeOrderLine(models.Model):
         domain="[('contract_id', '=', parent.contract_id)]",
     )
 
-    # ── Read-only: pulled from the original contract line ─────────────────────
-    original_description = fields.Char(
-        string='Item Work Name',
-        related='contract_line_id.description', readonly=True, store=True,
-    )
+    # ── Original values (read-only, for audit & reference only) ──────────────
     original_qty = fields.Float(
-        string='Original Quantity',
+        string='Original Qty',
         related='contract_line_id.qty', readonly=True, store=True,
     )
     original_unit_price = fields.Float(
-        string='Unit Price',
+        string='Original Unit Price',
         related='contract_line_id.unit_price', readonly=True, store=True,
     )
     original_total = fields.Float(
-        string='Original Item Total Value',
+        string='Original Total',
         compute='_compute_original_total', store=True,
+    )
+
+    # ── Baseline values (current approved values at time CO was created) ──────
+    # These are the basis for all calculations — NOT the original values.
+    baseline_qty = fields.Float(
+        string='Current Approved Qty',
+        readonly=True, store=True,
+        help='Current approved quantity at time this CO line was created.',
+    )
+    baseline_unit_price = fields.Float(
+        string='Current Approved Unit Price',
+        readonly=True, store=True,
+        help='Current approved unit price at time this CO line was created.',
+    )
+    baseline_total = fields.Float(
+        string='Current Total',
+        compute='_compute_baseline_total', store=True,
     )
 
     # ── Change inputs ─────────────────────────────────────────────────────────
@@ -77,8 +90,22 @@ class ChangeOrderLine(models.Model):
         for line in self:
             line.original_total = line.original_qty * line.original_unit_price
 
+    @api.depends('baseline_qty', 'baseline_unit_price')
+    def _compute_baseline_total(self):
+        for line in self:
+            line.baseline_total = line.baseline_qty * line.baseline_unit_price
+
+    @api.onchange('contract_line_id')
+    def _onchange_contract_line_id(self):
+        """Populate baseline values from the contract line's current approved values."""
+        if self.contract_line_id:
+            cl = self.contract_line_id
+            # Use current approved values as baseline (fall back to original if not yet set)
+            self.baseline_qty = cl.current_qty or cl.qty
+            self.baseline_unit_price = cl.current_unit_price or cl.unit_price
+
     @api.depends('change_type', 'change_qty', 'new_unit_price',
-                 'original_qty', 'original_unit_price', 'original_total',
+                 'baseline_qty', 'baseline_unit_price', 'baseline_total',
                  'change_order_id.contract_id.lines_total')
     def _compute_change_fields(self):
         for line in self:
@@ -86,29 +113,29 @@ class ChangeOrderLine(models.Model):
             contract_value = contract.lines_total or 0.0
             ctype = line.change_type
 
+            # Use baseline (current approved) values — never original values
+            bq = line.baseline_qty or line.original_qty   # safety fallback for legacy records
+            bp = line.baseline_unit_price or line.original_unit_price
+
             if ctype == 'change_qty':
-                # Change Value = Change Qty × Original Unit Price
-                cv = line.change_qty * line.original_unit_price
-                rq = line.original_qty + line.change_qty
-                np = line.original_unit_price
+                # Change Value = Change Qty × Current Approved Unit Price
+                cv = line.change_qty * bp
+                rq = bq + line.change_qty
 
             elif ctype == 'change_price':
-                # Change Value = (New Unit Price − Original Unit Price) × Original Qty
-                cv = (line.new_unit_price - line.original_unit_price) * line.original_qty
-                rq = line.original_qty
-                np = line.new_unit_price
+                # Change Value = (New Unit Price − Current Approved Unit Price) × Current Approved Qty
+                cv = (line.new_unit_price - bp) * bq
+                rq = bq
 
             elif ctype == 'change_qty_price':
-                # Revised Qty = Original Qty + Change Qty
-                # Change Value = (Revised Qty × New Unit Price) − Original Item Total
-                rq = line.original_qty + line.change_qty
-                cv = (rq * line.new_unit_price) - line.original_total
-                np = line.new_unit_price
+                # Revised Qty = Current Approved Qty + Change Qty
+                # Change Value = (Revised Qty × New Unit Price) − Current Total
+                rq = bq + line.change_qty
+                cv = (rq * line.new_unit_price) - (bq * bp)
 
             else:
                 cv = 0.0
-                rq = line.original_qty
-                np = line.original_unit_price
+                rq = bq
 
             line.revised_qty = rq
             line.change_value = cv
@@ -123,7 +150,6 @@ class ChangeOrderLine(models.Model):
                 line.cumulative_change_percentage = line.change_percentage
                 continue
 
-            # Sum change % from all OTHER approved COs (exclude current safely)
             co_id = line.change_order_id._origin.id
             domain = [
                 ('contract_id', '=', contract.id),
