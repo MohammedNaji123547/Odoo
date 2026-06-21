@@ -95,7 +95,11 @@ class ContractContract(models.Model):
 
     line_ids = fields.One2many('contract.line', 'contract_id', string='Work Items')
     change_order_ids = fields.One2many(
-        'contract.change_order', 'contract_id', string='Change Orders'
+        'contract.change_order', 'contract_id', string='Change Orders',
+    )
+    change_order_line_ids = fields.One2many(
+        'contract.change_order.line', 'contract_id',
+        string='Change Order History',
     )
     change_order_count = fields.Integer(
         compute='_compute_change_order_count'

@@ -259,6 +259,41 @@
                                     <separator string="Signed Contract Copy (Mandatory)"/>
                                     <field name="signed_copy_ids" widget="many2many_binary"/>
                                 </page>
+
+                                <!-- CHANGE ORDER HISTORY TAB -->
+                                <page string="Change Order History"
+                                      invisible="contract_type not in ('lump_sum_ctr', 'unit_rate_ctr')">
+                                    <field name="change_order_line_ids" readonly="1">
+                                        <tree decoration-success="co_state == 'approved'"
+                                              decoration-warning="co_state == 'pending_approval'"
+                                              decoration-danger="co_state == 'rejected'">
+                                            <field name="co_name" string="Change Order No."/>
+                                            <field name="co_date" string="CO Date"/>
+                                            <field name="original_description" string="Work Item Name"/>
+                                            <field name="original_qty" string="Original Qty"/>
+                                            <field name="original_unit_price" string="Original Unit Price"/>
+                                            <field name="change_type" string="Change Type"/>
+                                            <field name="change_qty" string="Change Qty"
+                                                   optional="show"/>
+                                            <field name="new_unit_price" string="New Unit Price"
+                                                   optional="show"/>
+                                            <field name="revised_qty" string="Revised Qty"/>
+                                            <field name="change_value" string="Change Value"
+                                                   sum="Total Change Value"/>
+                                            <field name="change_percentage" string="Change %"/>
+                                            <field name="cumulative_change_percentage"
+                                                   string="Cumulative %"
+                                                   decoration-danger="cumulative_change_percentage > 20"/>
+                                            <field name="co_created_by_id" string="Created By"/>
+                                            <field name="co_state" string="Status"
+                                                   widget="badge"
+                                                   decoration-success="co_state == 'approved'"
+                                                   decoration-warning="co_state == 'pending_approval'"
+                                                   decoration-danger="co_state == 'rejected'"/>
+                                            <field name="currency_id" invisible="1"/>
+                                        </tree>
+                                    </field>
+                                </page>
                             </notebook>
                         </div>
 
