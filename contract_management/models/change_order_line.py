@@ -79,10 +79,11 @@ class ChangeOrderLine(models.Model):
 
     @api.depends('change_type', 'change_qty', 'new_unit_price',
                  'original_qty', 'original_unit_price', 'original_total',
-                 'change_order_id.contract_id.value')
+                 'change_order_id.contract_id.lines_total')
     def _compute_change_fields(self):
         for line in self:
-            contract_value = line.change_order_id.contract_id.value or 0.0
+            contract = line.change_order_id.contract_id
+            contract_value = contract.lines_total or 0.0
             ctype = line.change_type
 
             if ctype == 'change_qty':
