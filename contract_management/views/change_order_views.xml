@@ -45,10 +45,12 @@
 
                     <group>
                         <group string="Change Order Details">
+                            <field name="partner_id"
+                                   readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
                             <field name="contract_id"
                                    readonly="state != 'draft'"
                                    options="{'no_create': True}"/>
-                            <field name="partner_id" readonly="1"/>
                             <field name="contract_type" readonly="1"/>
                             <field name="date" readonly="state != 'draft'"/>
                             <field name="created_by_id" readonly="1"/>

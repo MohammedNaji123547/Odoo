@@ -24,18 +24,20 @@ class ChangeOrder(models.Model):
     ], default='draft', string='Status', tracking=True)
 
     # ── Contract link ─────────────────────────────────────────────────────────
+    partner_id = fields.Many2one(
+        'res.partner', string='Contractor', tracking=True,
+        readonly="state != 'draft'",
+    )
     contract_id = fields.Many2one(
         'contract.contract', string='Contract', required=True,
-        domain=[('contract_type', 'in', ['lump_sum_ctr', 'unit_rate_ctr']),
-                ('state', 'in', ['active', 'completed'])],
+        domain="[('contract_type', 'in', ['lump_sum_ctr', 'unit_rate_ctr']), "
+               "('state', 'in', ['active', 'completed']), "
+               "('partner_id', '=', partner_id)]",
         tracking=True,
+        readonly="state != 'draft'",
     )
     contract_type = fields.Selection(
         related='contract_id.contract_type', readonly=True, store=True,
-    )
-    partner_id = fields.Many2one(
-        related='contract_id.partner_id', string='Contractor',
-        readonly=True, store=True,
     )
     original_contract_value = fields.Monetary(
         related='contract_id.value', string='Original Contract Value',
@@ -126,15 +128,31 @@ class ChangeOrder(models.Model):
             if not co.contract_id:
                 co.cumulative_change_percentage = co.total_change_percentage
                 continue
-            approved_cos = self.env['contract.change_order'].search([
+            # Exclude current record safely — NewId objects cannot be used in SQL
+            co_id = co._origin.id
+            domain = [
                 ('contract_id', '=', co.contract_id.id),
                 ('state', '=', 'approved'),
-                ('id', '!=', co.id),
-            ])
+            ]
+            if co_id:
+                domain.append(('id', '!=', co_id))
+            approved_cos = self.env['contract.change_order'].search(domain)
             prev_pct = sum(
                 approved.total_change_percentage for approved in approved_cos
             )
             co.cumulative_change_percentage = co.total_change_percentage + prev_pct
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # Onchange
+    # ─────────────────────────────────────────────────────────────────────────
+    @api.onchange('partner_id')
+    def _onchange_partner_id(self):
+        self.contract_id = False
+
+    @api.onchange('contract_id')
+    def _onchange_contract_id(self):
+        if self.contract_id and not self.partner_id:
+            self.partner_id = self.contract_id.partner_id
 
     # ─────────────────────────────────────────────────────────────────────────
     # Sequence
