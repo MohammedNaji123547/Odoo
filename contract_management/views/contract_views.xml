@@ -111,6 +111,16 @@
                 </header>
 
                 <sheet>
+                    <!-- Smart button: Change Orders -->
+                    <div class="oe_button_box" name="button_box"
+                         invisible="contract_type not in ('lump_sum_ctr', 'unit_rate_ctr')">
+                        <button name="%(contract_management.action_change_order_by_contract)d"
+                                type="action" class="oe_stat_button" icon="fa-file-text-o">
+                            <field name="change_order_count" widget="statinfo"
+                                   string="Change Orders"/>
+                        </button>
+                    </div>
+
                     <!-- invisible fields used in domains / logic -->
                     <field name="evaluated_partner_ids" invisible="1"/>
                     <field name="partner_id" invisible="1"/>

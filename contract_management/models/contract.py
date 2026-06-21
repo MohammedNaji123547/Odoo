@@ -94,6 +94,12 @@ class ContractContract(models.Model):
     )
 
     line_ids = fields.One2many('contract.line', 'contract_id', string='Work Items')
+    change_order_ids = fields.One2many(
+        'contract.change_order', 'contract_id', string='Change Orders'
+    )
+    change_order_count = fields.Integer(
+        compute='_compute_change_order_count', string='Change Orders'
+    )
     lines_total = fields.Monetary(
         string='Lines Total', compute='_compute_lines_total', store=True
     )
@@ -123,6 +129,10 @@ class ContractContract(models.Model):
     )
 
     # ── Computed ───────────────────────────────────────────────────────────
+    def _compute_change_order_count(self):
+        for rec in self:
+            rec.change_order_count = len(rec.change_order_ids)
+
     @api.depends('line_ids.subtotal')
     def _compute_lines_total(self):
         for rec in self:

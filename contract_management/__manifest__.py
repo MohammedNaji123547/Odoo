@@ -11,6 +11,7 @@
         'data/sequence.xml',
         'wizards/justification_wizard_views.xml',
         'views/contract_evaluation_views.xml',
+        'views/change_order_views.xml',
         'views/contract_views.xml',
         'views/menu.xml',
     ],

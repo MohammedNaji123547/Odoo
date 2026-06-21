@@ -25,5 +25,13 @@
             <field name="padding">2</field>
             <field name="company_id" eval="False"/>
         </record>
+        <!-- Change Order: CO/2026/0001 -->
+        <record id="seq_change_order" model="ir.sequence">
+            <field name="name">Change Order</field>
+            <field name="code">contract.change_order</field>
+            <field name="prefix">CO/%(year)s/</field>
+            <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
+        </record>
     </data>
 </odoo>
