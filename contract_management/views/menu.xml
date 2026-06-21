@@ -17,4 +17,11 @@
               action="contract_management.action_change_order"
               sequence="20"
               groups="contract_management.group_viewer"/>
+
+    <menuitem id="menu_revised_contracts"
+              name="Revised Contracts"
+              parent="menu_contract_root"
+              action="contract_management.action_revised_contract"
+              sequence="30"
+              groups="contract_management.group_viewer"/>
 </odoo>

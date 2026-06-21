@@ -13,6 +13,7 @@
         'views/contract_evaluation_views.xml',
         'views/change_order_views.xml',
         'views/contract_views.xml',
+        'views/revised_contract_views.xml',
         'views/menu.xml',
     ],
     'installable': True,
