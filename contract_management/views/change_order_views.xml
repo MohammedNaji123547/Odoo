@@ -20,6 +20,9 @@
                     <button name="action_approve" string="Approve"
                             type="object" class="btn-success"
                             invisible="not is_current_approver"/>
+                    <button name="action_resubmit_requester" string="Resubmit to Requester"
+                            type="object" class="btn-warning"
+                            invisible="not is_current_approver"/>
                     <button name="action_reject" string="Reject"
                             type="object" class="btn-danger"
                             invisible="not is_current_approver"/>

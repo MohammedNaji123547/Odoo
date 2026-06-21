@@ -16,6 +16,21 @@ class ContractJustificationWizard(models.TransientModel):
         code = self.action_code
         reason = self.justification
 
+        # ── Change Order resubmit to requester ────────────────────────────────
+        if code == 'co_resubmit' and self.co_id:
+            co = self.co_id
+            co.approver_ids.write({'status': 'pending'})
+            co.state = 'draft'
+            co.message_post(
+                body=Markup('<b>Resubmitted to Requester by %s</b><br/><b>Reason:</b> %s') % (
+                    escape(self.env.user.name),
+                    escape(reason or ''),
+                ),
+                message_type='comment',
+                partner_ids=co.created_by_id.partner_id.ids,
+            )
+            return {'type': 'ir.actions.act_window_close'}
+
         # ── Change Order rejection ─────────────────────────────────────────
         if code == 'co_reject' and self.co_id:
             co = self.co_id
