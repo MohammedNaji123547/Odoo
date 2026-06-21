@@ -334,6 +334,19 @@ class ChangeOrder(models.Model):
             },
         }
 
+    def action_resubmit_requester(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Resubmit to Requester'),
+            'res_model': 'contract.justification.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_action': 'co_resubmit',
+                'default_co_id': self.id,
+            },
+        }
+
     def action_reset_draft(self):
         for co in self:
             co.approver_ids.write({'status': 'pending'})
