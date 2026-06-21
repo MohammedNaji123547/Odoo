@@ -98,7 +98,7 @@ class ContractContract(models.Model):
         'contract.change_order', 'contract_id', string='Change Orders'
     )
     change_order_count = fields.Integer(
-        compute='_compute_change_order_count', string='Change Orders'
+        compute='_compute_change_order_count'
     )
     lines_total = fields.Monetary(
         string='Lines Total', compute='_compute_lines_total', store=True
