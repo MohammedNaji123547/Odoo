@@ -59,11 +59,9 @@
                             <field name="original_contract_value" readonly="1"/>
                             <field name="total_change_value" readonly="1"/>
                             <field name="total_change_percentage" readonly="1"
-                                   string="This CO Change %"
-                                   widget="percentage"/>
+                                   string="This CO Change %"/>
                             <field name="cumulative_change_percentage" readonly="1"
                                    string="Cumulative Change %"
-                                   widget="percentage"
                                    decoration-danger="cumulative_change_percentage > 20"/>
                         </group>
                     </group>
@@ -97,10 +95,9 @@
                                     <field name="revised_qty" readonly="1"/>
                                     <field name="change_value" readonly="1"/>
                                     <field name="change_percentage" readonly="1"
-                                           string="Change %" widget="percentage"/>
+                                           string="Change %"/>
                                     <field name="cumulative_change_percentage" readonly="1"
                                            string="Cumulative %"
-                                           widget="percentage"
                                            decoration-danger="cumulative_change_percentage > 20"/>
                                     <field name="currency_id" invisible="1"/>
                                 </tree>
@@ -130,9 +127,9 @@
                                     <group string="Impact">
                                         <field name="change_value" readonly="1"/>
                                         <field name="change_percentage" readonly="1"
-                                               string="Change %" widget="percentage"/>
+                                               string="Change %"/>
                                         <field name="cumulative_change_percentage" readonly="1"
-                                               string="Cumulative Change %" widget="percentage"/>
+                                               string="Cumulative Change %"/>
                                     </group>
                                 </form>
                             </field>
@@ -193,8 +190,8 @@
                 <field name="partner_id"/>
                 <field name="contract_type"/>
                 <field name="total_change_value" sum="Total"/>
-                <field name="total_change_percentage" string="Change %" widget="percentage"/>
-                <field name="cumulative_change_percentage" string="Cumulative %" widget="percentage"
+                <field name="total_change_percentage" string="Change %"/>
+                <field name="cumulative_change_percentage" string="Cumulative %"
                        decoration-danger="cumulative_change_percentage > 20"/>
                 <field name="created_by_id"/>
                 <field name="state" widget="badge"
