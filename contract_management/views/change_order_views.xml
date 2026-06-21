@@ -91,13 +91,10 @@
                                     <field name="original_total" readonly="1" string="Original Total"/>
                                     <field name="change_type"/>
                                     <field name="change_qty"
-                                           column_invisible="True"
                                            readonly="change_type not in ('change_qty', 'change_qty_price')"/>
                                     <field name="new_unit_price"
-                                           column_invisible="True"
                                            readonly="change_type not in ('change_price', 'change_qty_price')"/>
-                                    <field name="revised_qty" readonly="1"
-                                           column_invisible="True"/>
+                                    <field name="revised_qty" readonly="1"/>
                                     <field name="change_value" readonly="1"/>
                                     <field name="change_percentage" readonly="1"
                                            string="Change %" widget="percentage"/>
