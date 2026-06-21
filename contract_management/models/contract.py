@@ -129,6 +129,7 @@ class ContractContract(models.Model):
     )
 
     # ── Computed ───────────────────────────────────────────────────────────
+    @api.depends('change_order_ids')
     def _compute_change_order_count(self):
         for rec in self:
             rec.change_order_count = len(rec.change_order_ids)
