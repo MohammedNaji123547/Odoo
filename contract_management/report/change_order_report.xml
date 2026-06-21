@@ -1,0 +1,496 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         REPORT ACTION
+         ══════════════════════════════════════════════════════════════════════ -->
+    <record id="action_report_change_order" model="ir.actions.report">
+        <field name="name">Change Order</field>
+        <field name="model">contract.change_order</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">contract_management.report_change_order_document</field>
+        <field name="report_file">contract_management/report/change_order_report</field>
+        <field name="binding_model_id" ref="model_contract_change_order"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         QWEB TEMPLATE
+         ══════════════════════════════════════════════════════════════════════ -->
+    <template id="report_change_order_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+
+                    <div class="page">
+
+                        <!-- ── Title bar ─────────────────────────────────── -->
+                        <div style="background:#1f3864;color:#fff;padding:14px 20px;
+                                    margin-bottom:20px;border-radius:4px;">
+                            <table width="100%" style="border-collapse:collapse;">
+                                <tr>
+                                    <td style="vertical-align:middle;">
+                                        <h2 style="margin:0;color:#fff;font-size:20px;
+                                                   letter-spacing:1px;">
+                                            CHANGE ORDER
+                                        </h2>
+                                        <div style="font-size:12px;opacity:.85;margin-top:3px;">
+                                            Contract Change Management Document
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right;vertical-align:middle;">
+                                        <div style="font-size:18px;font-weight:bold;">
+                                            <t t-esc="o.name"/>
+                                        </div>
+                                        <div style="font-size:11px;opacity:.85;">
+                                            Date: <t t-esc="o.date"/>
+                                        </div>
+                                        <div style="margin-top:6px;">
+                                            <span t-attf-style="
+                                                background:#{
+                                                    'approved' == o.state and '#28a745' or
+                                                    'finalization' == o.state and '#fd7e14' or
+                                                    'pending_approval' == o.state and '#ffc107' or
+                                                    'rejected' == o.state and '#dc3545' or '#6c757d'
+                                                };
+                                                color:#fff;padding:3px 10px;border-radius:12px;
+                                                font-size:11px;font-weight:bold;">
+                                                <t t-esc="dict(o._fields['state'].selection).get(o.state, o.state)"/>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- ── Contract & CO Details ─────────────────────── -->
+                        <table width="100%" style="border-collapse:collapse;
+                                                   margin-bottom:16px;font-size:11px;">
+                            <tr>
+                                <td width="50%" style="vertical-align:top;padding-right:10px;">
+                                    <table width="100%" style="border-collapse:collapse;
+                                                               border:1px solid #dee2e6;">
+                                        <tr style="background:#2c3e50;color:#fff;">
+                                            <th colspan="2"
+                                                style="padding:7px 10px;font-size:11px;">
+                                                CHANGE ORDER DETAILS
+                                            </th>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       width:45%;border-bottom:1px solid #dee2e6;">
+                                                CO Number
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.name"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                Date
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.date"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                Contractor
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.partner_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                Created By
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.created_by_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;">
+                                                Status
+                                            </td>
+                                            <td style="padding:6px 10px;">
+                                                <t t-esc="dict(o._fields['state'].selection).get(o.state, o.state)"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td width="50%" style="vertical-align:top;padding-left:10px;">
+                                    <table width="100%" style="border-collapse:collapse;
+                                                               border:1px solid #dee2e6;">
+                                        <tr style="background:#2c3e50;color:#fff;">
+                                            <th colspan="2"
+                                                style="padding:7px 10px;font-size:11px;">
+                                                CONTRACT REFERENCE
+                                            </th>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       width:45%;border-bottom:1px solid #dee2e6;">
+                                                Contract No.
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.contract_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                Contract Type
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="dict(o.contract_id._fields['contract_type'].selection).get(o.contract_id.contract_type, '—')"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                Original Contract Value
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(o.original_contract_value)"/>
+                                                <t t-esc="o.currency_id.name"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                This CO Change
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(o.total_change_value)"/>
+                                                <t t-esc="o.currency_id.name"/>
+                                                (<t t-esc="'{:.2f}'.format(o.total_change_percentage)"/>%)
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;">
+                                                Cumulative Change
+                                            </td>
+                                            <td style="padding:6px 10px;">
+                                                <t t-esc="'{:.2f}'.format(o.cumulative_change_percentage)"/>%
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- ── Reason / Justification ────────────────────── -->
+                        <t t-if="o.reason">
+                            <div style="border:1px solid #dee2e6;margin-bottom:16px;
+                                        border-radius:3px;">
+                                <div style="background:#2c3e50;color:#fff;
+                                            padding:7px 10px;font-size:11px;font-weight:bold;">
+                                    REASON / JUSTIFICATION
+                                </div>
+                                <div style="padding:10px;font-size:11px;
+                                            white-space:pre-wrap;">
+                                    <t t-esc="o.reason"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- ── Change Items Table ────────────────────────── -->
+                        <div style="border:1px solid #dee2e6;margin-bottom:16px;
+                                    border-radius:3px;">
+                            <div style="background:#2c3e50;color:#fff;
+                                        padding:7px 10px;font-size:11px;font-weight:bold;">
+                                CHANGE ITEMS
+                            </div>
+                            <table width="100%"
+                                   style="border-collapse:collapse;font-size:10px;">
+                                <thead>
+                                    <tr style="background:#495057;color:#fff;">
+                                        <th style="padding:6px 8px;text-align:left;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Work Item</th>
+                                        <th style="padding:6px 8px;text-align:center;
+                                                   border:1px solid #6c757d;"
+                                            colspan="3">Original Values (Audit)</th>
+                                        <th style="padding:6px 8px;text-align:center;
+                                                   border:1px solid #6c757d;"
+                                            colspan="3">Current Approved (Baseline)</th>
+                                        <th style="padding:6px 8px;text-align:left;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Change Type</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Change Qty</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">New Unit Price</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Revised Qty</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Change Value</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;"
+                                            rowspan="2">Change %</th>
+                                    </tr>
+                                    <tr style="background:#6c757d;color:#fff;">
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Qty</th>
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Unit Price</th>
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Total</th>
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Qty</th>
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Unit Price</th>
+                                        <th style="padding:5px 8px;text-align:right;
+                                                   border:1px solid #868e96;">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.line_ids" t-as="line">
+                                        <tr t-attf-style="background:#{line_index % 2 == 0 and '#ffffff' or '#f8f9fa'};">
+                                            <td style="padding:6px 8px;border:1px solid #dee2e6;">
+                                                <t t-esc="line.original_description or '—'"/>
+                                            </td>
+                                            <!-- Original values -->
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;color:#6c757d;">
+                                                <t t-esc="'{:,.2f}'.format(line.original_qty)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;color:#6c757d;">
+                                                <t t-esc="'{:,.2f}'.format(line.original_unit_price)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;color:#6c757d;">
+                                                <t t-esc="'{:,.2f}'.format(line.original_total)"/>
+                                            </td>
+                                            <!-- Baseline (current approved) values -->
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;">
+                                                <t t-esc="'{:,.2f}'.format(line.baseline_qty)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;">
+                                                <t t-esc="'{:,.2f}'.format(line.baseline_unit_price)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;">
+                                                <t t-esc="'{:,.2f}'.format(line.baseline_total)"/>
+                                            </td>
+                                            <!-- Change type -->
+                                            <td style="padding:6px 8px;border:1px solid #dee2e6;">
+                                                <t t-esc="dict(line._fields['change_type'].selection).get(line.change_type, '—')"/>
+                                            </td>
+                                            <!-- Change inputs -->
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-if="line.change_type in ('change_qty','change_qty_price')">
+                                                    <t t-esc="'{:+,.2f}'.format(line.change_qty)"/>
+                                                </t>
+                                                <t t-else="">—</t>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-if="line.change_type in ('change_price','change_qty_price')">
+                                                    <t t-esc="'{:,.2f}'.format(line.new_unit_price)"/>
+                                                </t>
+                                                <t t-else="">—</t>
+                                            </td>
+                                            <!-- Outputs -->
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;">
+                                                <t t-esc="'{:,.2f}'.format(line.revised_qty)"/>
+                                            </td>
+                                            <td t-attf-style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;
+                                                       color:#{line.change_value >= 0 and '#155724' or '#721c24'};">
+                                                <t t-esc="'{:+,.2f}'.format(line.change_value)"/>
+                                            </td>
+                                            <td t-attf-style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;
+                                                       color:#{line.change_percentage > 20 and '#721c24' or '#155724'};">
+                                                <t t-esc="'{:.2f}'.format(line.change_percentage)"/>%
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                                <!-- Summary footer -->
+                                <tfoot>
+                                    <tr style="background:#495057;color:#fff;font-weight:bold;">
+                                        <td colspan="7"
+                                            style="padding:7px 8px;border:1px solid #6c757d;
+                                                   text-align:right;">
+                                            TOTAL
+                                        </td>
+                                        <td colspan="4"
+                                            style="padding:7px 8px;border:1px solid #6c757d;"></td>
+                                        <td style="padding:7px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">
+                                            <t t-esc="'{:+,.2f}'.format(o.total_change_value)"/>
+                                        </td>
+                                        <td style="padding:7px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">
+                                            <t t-esc="'{:.2f}'.format(o.total_change_percentage)"/>%
+                                        </td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- ── Contract Value Summary ────────────────────── -->
+                        <table width="40%"
+                               style="border-collapse:collapse;font-size:11px;
+                                      margin-left:auto;margin-bottom:20px;">
+                            <tr style="background:#495057;color:#fff;">
+                                <td style="padding:8px 12px;font-weight:bold;
+                                           border:1px solid #6c757d;">
+                                    Original Contract Value
+                                </td>
+                                <td style="padding:8px 12px;text-align:right;
+                                           border:1px solid #6c757d;">
+                                    <t t-esc="'{:,.2f}'.format(o.original_contract_value)"/>
+                                    <t t-esc="o.currency_id.name"/>
+                                </td>
+                            </tr>
+                            <tr style="background:#856404;color:#fff;">
+                                <td style="padding:8px 12px;font-weight:bold;
+                                           border:1px solid #6c757d;">
+                                    This CO Change Value
+                                </td>
+                                <td style="padding:8px 12px;text-align:right;
+                                           border:1px solid #6c757d;">
+                                    <t t-esc="'{:+,.2f}'.format(o.total_change_value)"/>
+                                    <t t-esc="o.currency_id.name"/>
+                                    (<t t-esc="'{:.2f}'.format(o.total_change_percentage)"/>%)
+                                </td>
+                            </tr>
+                            <tr style="background:#155724;color:#fff;font-weight:bold;">
+                                <td style="padding:8px 12px;border:1px solid #6c757d;">
+                                    Cumulative Change %
+                                </td>
+                                <td style="padding:8px 12px;text-align:right;
+                                           border:1px solid #6c757d;">
+                                    <t t-esc="'{:.2f}'.format(o.cumulative_change_percentage)"/>%
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- ── Approval Chain ────────────────────────────── -->
+                        <div style="border:1px solid #dee2e6;margin-bottom:20px;
+                                    border-radius:3px;">
+                            <div style="background:#2c3e50;color:#fff;
+                                        padding:7px 10px;font-size:11px;font-weight:bold;">
+                                APPROVAL CHAIN
+                            </div>
+                            <table width="100%"
+                                   style="border-collapse:collapse;font-size:11px;">
+                                <thead>
+                                    <tr style="background:#f8f9fa;">
+                                        <th style="padding:6px 10px;text-align:left;
+                                                   border:1px solid #dee2e6;">Step</th>
+                                        <th style="padding:6px 10px;text-align:left;
+                                                   border:1px solid #dee2e6;">Approver</th>
+                                        <th style="padding:6px 10px;text-align:center;
+                                                   border:1px solid #dee2e6;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.approver_ids.sorted('sequence')"
+                                       t-as="approver">
+                                        <tr t-attf-style="background:#{approver_index % 2 == 0 and '#fff' or '#f8f9fa'};">
+                                            <td style="padding:6px 10px;border:1px solid #dee2e6;
+                                                       text-align:center;width:60px;">
+                                                <t t-esc="approver.sequence"/>
+                                            </td>
+                                            <td style="padding:6px 10px;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="approver.user_id.name"/>
+                                            </td>
+                                            <td style="padding:6px 10px;text-align:center;
+                                                       border:1px solid #dee2e6;">
+                                                <span t-attf-style="
+                                                    padding:2px 10px;border-radius:10px;font-size:10px;
+                                                    font-weight:bold;
+                                                    background:#{
+                                                        approver.status == 'approved' and '#d4edda' or
+                                                        approver.status == 'rejected' and '#f8d7da' or '#fff3cd'
+                                                    };
+                                                    color:#{
+                                                        approver.status == 'approved' and '#155724' or
+                                                        approver.status == 'rejected' and '#721c24' or '#856404'
+                                                    };">
+                                                    <t t-esc="approver.status.capitalize()"/>
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- ── Signature Section ─────────────────────────── -->
+                        <div style="border:1px solid #dee2e6;border-radius:3px;
+                                    page-break-inside:avoid;">
+                            <div style="background:#2c3e50;color:#fff;
+                                        padding:7px 10px;font-size:11px;font-weight:bold;">
+                                SIGNATURES
+                            </div>
+                            <table width="100%"
+                                   style="border-collapse:collapse;font-size:11px;">
+                                <tr>
+                                    <td style="padding:20px;border-right:1px solid #dee2e6;
+                                               width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Prepared By
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                    <td style="padding:20px;border-right:1px solid #dee2e6;
+                                               width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Reviewed &amp; Approved By
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                    <td style="padding:20px;width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Contractor Representative
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                    </div><!-- /page -->
+                </t><!-- /external_layout -->
+            </t>
+        </t>
+    </template>
+
+</odoo>

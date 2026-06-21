@@ -12,6 +12,7 @@
         'wizards/justification_wizard_views.xml',
         'views/contract_evaluation_views.xml',
         'views/change_order_views.xml',
+        'report/change_order_report.xml',
         'views/contract_views.xml',
         'views/revised_contract_views.xml',
         'views/menu.xml',

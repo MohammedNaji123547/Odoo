@@ -18,6 +18,10 @@ class ChangeOrderLine(models.Model):
     )
 
     # ── Original values (read-only, for audit & reference only) ──────────────
+    original_description = fields.Char(
+        string='Work Item Name',
+        related='contract_line_id.description', readonly=True, store=True,
+    )
     original_qty = fields.Float(
         string='Original Qty',
         related='contract_line_id.qty', readonly=True, store=True,
