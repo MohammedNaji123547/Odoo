@@ -103,6 +103,11 @@ class ContractContract(models.Model):
     lines_total = fields.Monetary(
         string='Lines Total', compute='_compute_lines_total', store=True
     )
+    revised_contract_html = fields.Html(
+        string='Revised Contract Summary',
+        compute='_compute_revised_contract_html',
+        sanitize=False,
+    )
     evaluation_ids = fields.One2many('contract.evaluation', 'contract_id', string='Evaluations')
 
     # ── Approvers ──────────────────────────────────────────────────────────
@@ -138,6 +143,119 @@ class ContractContract(models.Model):
     def _compute_lines_total(self):
         for rec in self:
             rec.lines_total = sum(rec.line_ids.mapped('subtotal'))
+
+    @api.depends('line_ids', 'line_ids.qty', 'line_ids.unit_price',
+                 'change_order_ids.state', 'change_order_ids.line_ids',
+                 'change_order_ids.line_ids.change_type',
+                 'change_order_ids.line_ids.change_qty',
+                 'change_order_ids.line_ids.new_unit_price',
+                 'change_order_ids.line_ids.change_value')
+    def _compute_revised_contract_html(self):
+        for contract in self:
+            if contract.contract_type not in ('lump_sum_ctr', 'unit_rate_ctr'):
+                contract.revised_contract_html = ''
+                continue
+
+            approved_cos = contract.change_order_ids.filtered(
+                lambda co: co.state == 'approved'
+            ).sorted(lambda co: (co.date or '', co.name))
+
+            if not approved_cos:
+                contract.revised_contract_html = (
+                    '<p style="color:#6c757d;padding:8px 0;">'
+                    'No approved Change Orders — contract values are unchanged.</p>'
+                )
+                continue
+
+            rows = ''
+            orig_grand = 0.0
+            revised_grand = 0.0
+
+            for cl in contract.line_ids:
+                # Apply each approved CO sequentially
+                curr_qty = cl.qty
+                curr_price = cl.unit_price
+                total_cv = 0.0
+
+                for co in approved_cos:
+                    for co_line in co.line_ids.filtered(
+                        lambda l, cl=cl: l.contract_line_id.id == cl.id
+                    ):
+                        total_cv += co_line.change_value
+                        if co_line.change_type == 'change_qty':
+                            curr_qty += co_line.change_qty
+                        elif co_line.change_type == 'change_price':
+                            curr_price = co_line.new_unit_price
+                        elif co_line.change_type == 'change_qty_price':
+                            curr_qty += co_line.change_qty
+                            curr_price = co_line.new_unit_price
+
+                orig_total = cl.qty * cl.unit_price
+                revised_total = curr_qty * curr_price
+                changed = bool(total_cv)
+
+                orig_grand += orig_total
+                revised_grand += revised_total
+
+                delta_qty = curr_qty - cl.qty
+                price_changed = curr_price != cl.unit_price
+
+                rows += (
+                    f'<tr style="{"background:#fff8e1;" if changed else ""}">'
+                    f'<td style="padding:8px 10px">{cl.description or "-"}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{cl.qty:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{cl.unit_price:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{orig_total:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'color:{"#28a745" if delta_qty > 0 else "#dc3545" if delta_qty < 0 else "inherit"}">'
+                    f'{"+" if delta_qty > 0 else ""}{delta_qty:.2f if delta_qty else "-"}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"color:#fd7e14;font-weight:bold;" if price_changed else ""}">'
+                    f'{curr_price:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"font-weight:bold;" if changed else ""}">{curr_qty:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"font-weight:bold;" if changed else ""}">{revised_total:.2f}</td>'
+                    f'</tr>'
+                )
+
+            total_cv_grand = revised_grand - orig_grand
+            cv_pct = (total_cv_grand / orig_grand * 100) if orig_grand else 0.0
+            cv_color = '#dc3545' if total_cv_grand >= 0 else '#198754'
+
+            html = (
+                '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                '<thead>'
+                '<tr style="background:#2c3e50;color:#fff;">'
+                '<th style="padding:8px 10px;text-align:left">Work Item</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Unit Price</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Total</th>'
+                '<th style="padding:8px 10px;text-align:right">Change Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Unit Price</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Total</th>'
+                '</tr>'
+                '</thead>'
+                f'<tbody>{rows}</tbody>'
+                '</table>'
+                f'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:2px;">'
+                f'<tr style="background:#495057;color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px;width:60%">Original Contract Total</td>'
+                f'<td style="padding:10px 10px;text-align:right">{orig_grand:.2f}</td>'
+                f'</tr>'
+                f'<tr style="background:{cv_color};color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px">Total Change Value</td>'
+                f'<td style="padding:10px 10px;text-align:right">'
+                f'{"+" if total_cv_grand >= 0 else ""}{total_cv_grand:.2f} ({cv_pct:.2f}%)</td>'
+                f'</tr>'
+                f'<tr style="background:#155724;color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px">Revised Contract Total</td>'
+                f'<td style="padding:10px 10px;text-align:right">{revised_grand:.2f}</td>'
+                f'</tr>'
+                f'</table>'
+            )
+            contract.revised_contract_html = html
 
     @api.depends('evaluation_ids.partner_id')
     def _compute_evaluated_partners(self):

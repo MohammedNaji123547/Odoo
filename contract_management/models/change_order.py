@@ -260,9 +260,15 @@ class ChangeOrder(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', 'New') == 'New':
-                vals['name'] = self.env['ir.sequence'].next_by_code(
+                seq = self.env['ir.sequence'].next_by_code(
                     'contract.change_order'
                 ) or 'New'
+                contract_id = vals.get('contract_id')
+                if contract_id:
+                    contract = self.env['contract.contract'].browse(contract_id)
+                    vals['name'] = f"{seq}-{contract.name}"
+                else:
+                    vals['name'] = seq
         return super().create(vals_list)
 
     # ─────────────────────────────────────────────────────────────────────────
