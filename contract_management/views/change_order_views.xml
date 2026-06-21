@@ -10,7 +10,7 @@
         <field name="arch" type="xml">
             <form string="Change Order">
                 <header>
-                    <!-- Draft actions -->
+                    <!-- Draft -->
                     <button name="action_submit" string="Submit for Approval"
                             type="object" class="btn-primary"
                             invisible="state != 'draft'"
@@ -27,6 +27,12 @@
                             type="object" class="btn-danger"
                             invisible="not is_current_approver"/>
 
+                    <!-- Finalization (Contract Management only) -->
+                    <button name="action_finalize" string="Finalize Change Order"
+                            type="object" class="btn-primary"
+                            invisible="state != 'finalization'"
+                            groups="contract_management.group_management"/>
+
                     <!-- Reset to draft -->
                     <button name="action_reset_draft" string="Reset to Draft"
                             type="object"
@@ -34,7 +40,7 @@
                             groups="contract_management.group_management"/>
 
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,pending_approval,approved"/>
+                           statusbar_visible="draft,pending_approval,finalization,approved"/>
                 </header>
 
                 <sheet>
@@ -42,9 +48,18 @@
                         <h1><field name="name" readonly="1"/></h1>
                     </div>
 
-                    <!-- Hidden fields needed for domains/logic -->
+                    <!-- Hidden fields -->
                     <field name="is_current_approver" invisible="1"/>
                     <field name="currency_id" invisible="1"/>
+
+                    <!-- Finalization notice banner -->
+                    <div invisible="state != 'finalization'"
+                         style="background:#fff3cd;border:1px solid #ffc107;border-radius:4px;
+                                padding:12px 16px;margin-bottom:16px;">
+                        <strong>Pending Finalization</strong> — All approvers have signed off.
+                        Please attach the signed Change Order document below and click
+                        <strong>Finalize Change Order</strong> to complete the process.
+                    </div>
 
                     <group>
                         <group string="Change Order Details">
@@ -69,7 +84,8 @@
                         </group>
                     </group>
 
-                    <group string="Reason / Justification">
+                    <group string="Reason / Justification"
+                           invisible="state == 'finalization'">
                         <field name="reason" nolabel="1"
                                placeholder="Describe the reason for this change order..."
                                readonly="state != 'draft'"/>
@@ -86,26 +102,38 @@
                         <field name="co_history_html" readonly="1" nolabel="1"/>
                     </div>
 
-                    <notebook>
+                    <notebook invisible="state == 'finalization'">
 
                         <!-- CHANGE ITEMS TAB -->
                         <page string="Change Items">
-                            <field name="line_ids"
-                                   readonly="state != 'draft'">
-                                <tree editable="bottom" decoration-muted="change_type == False">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom"
+                                      decoration-muted="change_type == False">
                                     <field name="sequence" widget="handle"/>
                                     <field name="contract_line_id"
                                            string="Work Item"
                                            options="{'no_create': True}"/>
-                                    <field name="original_description" readonly="1"/>
-                                    <field name="original_qty" readonly="1"/>
-                                    <field name="original_unit_price" readonly="1" string="Unit Price"/>
-                                    <field name="original_total" readonly="1" string="Original Total"/>
+                                    <!-- Original values (audit only) -->
+                                    <field name="original_qty" readonly="1"
+                                           string="Orig. Qty" optional="hide"/>
+                                    <field name="original_unit_price" readonly="1"
+                                           string="Orig. Unit Price" optional="hide"/>
+                                    <field name="original_total" readonly="1"
+                                           string="Orig. Total" optional="hide"/>
+                                    <!-- Baseline (current approved values) -->
+                                    <field name="baseline_qty" readonly="1"
+                                           string="Current Qty"/>
+                                    <field name="baseline_unit_price" readonly="1"
+                                           string="Current Unit Price"/>
+                                    <field name="baseline_total" readonly="1"
+                                           string="Current Total"/>
+                                    <!-- Change inputs -->
                                     <field name="change_type"/>
                                     <field name="change_qty"
                                            readonly="change_type not in ('change_qty', 'change_qty_price')"/>
                                     <field name="new_unit_price"
                                            readonly="change_type not in ('change_price', 'change_qty_price')"/>
+                                    <!-- Computed outputs -->
                                     <field name="revised_qty" readonly="1"/>
                                     <field name="change_value" readonly="1"/>
                                     <field name="change_percentage" readonly="1"
@@ -115,35 +143,39 @@
                                            decoration-danger="cumulative_change_percentage > 20"/>
                                     <field name="currency_id" invisible="1"/>
                                 </tree>
-                                <!-- Expanded line form inside the tree -->
                                 <form string="Change Item">
                                     <field name="currency_id" invisible="1"/>
                                     <group>
-                                        <group string="Original (Read-Only)">
+                                        <group string="Original Values (Audit Reference)">
                                             <field name="contract_line_id"
                                                    string="Work Item"
                                                    options="{'no_create': True}"/>
-                                            <field name="original_description" readonly="1"/>
                                             <field name="original_qty" readonly="1"/>
-                                            <field name="original_unit_price" readonly="1" string="Unit Price"/>
+                                            <field name="original_unit_price" readonly="1"/>
                                             <field name="original_total" readonly="1"/>
                                         </group>
+                                        <group string="Current Approved Values (Baseline)">
+                                            <field name="baseline_qty" readonly="1"/>
+                                            <field name="baseline_unit_price" readonly="1"/>
+                                            <field name="baseline_total" readonly="1"/>
+                                        </group>
+                                    </group>
+                                    <group>
                                         <group string="Change Details">
                                             <field name="change_type"/>
                                             <field name="change_qty"
                                                    invisible="change_type not in ('change_qty', 'change_qty_price')"/>
                                             <field name="new_unit_price"
                                                    invisible="change_type not in ('change_price', 'change_qty_price')"/>
-                                            <field name="revised_qty" readonly="1"
-                                                   invisible="change_type not in ('change_qty', 'change_qty_price')"/>
+                                            <field name="revised_qty" readonly="1"/>
                                         </group>
-                                    </group>
-                                    <group string="Impact">
-                                        <field name="change_value" readonly="1"/>
-                                        <field name="change_percentage" readonly="1"
-                                               string="Change %"/>
-                                        <field name="cumulative_change_percentage" readonly="1"
-                                               string="Cumulative Change %"/>
+                                        <group string="Impact">
+                                            <field name="change_value" readonly="1"/>
+                                            <field name="change_percentage" readonly="1"
+                                                   string="Change %"/>
+                                            <field name="cumulative_change_percentage" readonly="1"
+                                                   string="Cumulative Change %"/>
+                                        </group>
                                     </group>
                                 </form>
                             </field>
@@ -152,12 +184,12 @@
                         <!-- APPROVAL CHAIN TAB -->
                         <page string="Approval Chain">
                             <p class="text-muted"
-                               invisible="state in ('pending_approval', 'approved', 'rejected')">
+                               invisible="state in ('pending_approval', 'approved', 'rejected', 'finalization')">
                                 Add approvers here — they will be notified sequentially
                                 when this Change Order is submitted.
                             </p>
                             <field name="approver_ids"
-                                   readonly="state in ('pending_approval', 'approved', 'rejected')">
+                                   readonly="state in ('pending_approval', 'approved', 'rejected', 'finalization')">
                                 <tree editable="bottom">
                                     <field name="sequence" widget="handle"/>
                                     <field name="user_id"/>
@@ -169,13 +201,27 @@
                             </field>
                         </page>
 
-                        <!-- DOCUMENTS TAB -->
+                        <!-- SUPPORTING DOCUMENTS TAB -->
                         <page string="Supporting Documents">
                             <field name="attachment_ids" widget="many2many_binary"
-                                   readonly="state == 'approved'"/>
+                                   readonly="state not in ('draft',)"/>
                         </page>
 
                     </notebook>
+
+                    <!-- FINALIZATION SECTION (read-only form, only attachment writable) -->
+                    <group string="Finalization — Signed Change Order"
+                           invisible="state not in ('finalization', 'approved')">
+                        <div colspan="2" style="color:#6c757d;margin-bottom:8px;"
+                             invisible="state != 'finalization'">
+                            Attach the physically signed Change Order document.
+                            This is mandatory before the Change Order can be finalized.
+                        </div>
+                        <field name="signed_co_ids" widget="many2many_binary"
+                               nolabel="1"
+                               readonly="state == 'approved'"/>
+                    </group>
+
                 </sheet>
 
                 <div class="oe_chatter">
@@ -195,7 +241,7 @@
         <field name="model">contract.change_order</field>
         <field name="arch" type="xml">
             <tree decoration-success="state == 'approved'"
-                  decoration-warning="state == 'pending_approval'"
+                  decoration-warning="state in ('pending_approval', 'finalization')"
                   decoration-danger="state == 'rejected'"
                   decoration-muted="state == 'draft'">
                 <field name="name"/>
@@ -210,7 +256,7 @@
                 <field name="created_by_id"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'approved'"
-                       decoration-warning="state == 'pending_approval'"
+                       decoration-warning="state in ('pending_approval', 'finalization')"
                        decoration-danger="state == 'rejected'"/>
                 <field name="currency_id" invisible="1"/>
             </tree>
@@ -233,6 +279,8 @@
                         domain="[('state','=','draft')]"/>
                 <filter name="pending_approval" string="Pending Approval"
                         domain="[('state','=','pending_approval')]"/>
+                <filter name="finalization"     string="Finalization"
+                        domain="[('state','=','finalization')]"/>
                 <filter name="approved"         string="Approved"
                         domain="[('state','=','approved')]"/>
                 <filter name="my_approval"      string="Awaiting My Approval"
@@ -264,17 +312,12 @@
         <field name="search_view_id" ref="view_change_order_search"/>
         <field name="context">{'search_default_pending_approval': 0}</field>
         <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Create a Change Order
-            </p>
-            <p>
-                Change Orders modify the quantity or price of work items
-                on an existing Lump Sum or Unit Rate contract.
-            </p>
+            <p class="o_view_nocontent_smiling_face">Create a Change Order</p>
+            <p>Change Orders modify the quantity or price of work items
+               on an existing Lump Sum or Unit Rate contract.</p>
         </field>
     </record>
 
-    <!-- Action filtered to a specific contract (used by smart button) -->
     <record id="action_change_order_by_contract" model="ir.actions.act_window">
         <field name="name">Change Orders</field>
         <field name="res_model">contract.change_order</field>

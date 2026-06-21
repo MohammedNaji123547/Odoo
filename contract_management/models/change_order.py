@@ -19,6 +19,7 @@ class ChangeOrder(models.Model):
     state = fields.Selection([
         ('draft',            'Draft'),
         ('pending_approval', 'Pending Approval'),
+        ('finalization',     'Finalization'),
         ('approved',         'Approved'),
         ('rejected',         'Rejected'),
     ], default='draft', string='Status', tracking=True)
@@ -61,7 +62,15 @@ class ChangeOrder(models.Model):
         'contract.change_order.approver', 'change_order_id', string='Approvers',
     )
     attachment_ids = fields.Many2many(
-        'ir.attachment', string='Supporting Documents',
+        'ir.attachment',
+        'change_order_attachment_rel', 'co_id', 'att_id',
+        string='Supporting Documents',
+    )
+    signed_co_ids = fields.Many2many(
+        'ir.attachment',
+        'change_order_signed_rel', 'co_id', 'att_id',
+        string='Signed Change Order',
+        help='Mandatory before finalizing the Change Order.',
     )
 
     # ── Approver chain state ──────────────────────────────────────────────────
@@ -318,8 +327,11 @@ class ChangeOrder(models.Model):
             if still_pending:
                 co._notify_next_approver()
             else:
-                co.state = 'approved'
-                co.message_post(body=_('Change Order fully approved.'))
+                co.state = 'finalization'
+                co.message_post(body=_(
+                    'All approvers have approved. Change Order is pending '
+                    'finalization — please attach the signed document.'
+                ))
 
     def action_reject(self):
         return {
@@ -351,6 +363,36 @@ class ChangeOrder(models.Model):
         for co in self:
             co.approver_ids.write({'status': 'pending'})
             co.state = 'draft'
+
+    def action_finalize(self):
+        """Attach signed CO, mark approved, and update contract line current values."""
+        for co in self:
+            if not co.signed_co_ids:
+                raise UserError(_(
+                    'Please attach the signed Change Order document before finalizing.'
+                ))
+            co.state = 'approved'
+            co.message_post(body=_('Change Order finalized and approved. Contract values updated.'))
+
+            # Update each contract line's current approved values
+            for line in co.line_ids:
+                cl = line.contract_line_id
+                # Start from the baseline values this CO line used
+                new_qty = line.baseline_qty or cl.current_qty or cl.qty
+                new_price = line.baseline_unit_price or cl.current_unit_price or cl.unit_price
+
+                if line.change_type == 'change_qty':
+                    new_qty = (line.baseline_qty or cl.qty) + line.change_qty
+                elif line.change_type == 'change_price':
+                    new_price = line.new_unit_price
+                elif line.change_type == 'change_qty_price':
+                    new_qty = (line.baseline_qty or cl.qty) + line.change_qty
+                    new_price = line.new_unit_price
+
+                cl.write({
+                    'current_qty': new_qty,
+                    'current_unit_price': new_price,
+                })
 
     def _do_reject(self, reason):
         """Called from the rejection wizard."""
