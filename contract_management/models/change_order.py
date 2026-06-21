@@ -93,6 +93,13 @@ class ChangeOrder(models.Model):
         default=lambda self: self.env.user, readonly=True,
     )
 
+    # ── Change Order History HTML ─────────────────────────────────────────────
+    co_history_html = fields.Html(
+        string='Change Order History',
+        compute='_compute_co_history_html',
+        sanitize=False,
+    )
+
     # ─────────────────────────────────────────────────────────────────────────
     # Compute: current approver
     # ─────────────────────────────────────────────────────────────────────────
@@ -124,6 +131,95 @@ class ChangeOrder(models.Model):
         for co in self:
             co.total_change_value = sum(co.line_ids.mapped('change_value'))
             co.total_change_percentage = sum(co.line_ids.mapped('change_percentage'))
+
+    @api.depends('contract_id', 'contract_id.change_order_ids.state',
+                 'contract_id.change_order_ids.line_ids')
+    def _compute_co_history_html(self):
+        _CHANGE_TYPE_LABEL = {
+            'change_qty':       'Change Quantity',
+            'change_price':     'Change Price',
+            'change_qty_price': 'Change Qty &amp; Price',
+        }
+        _STATE_BADGE = {
+            'approved':         ('<span style="background:#28a745;color:#fff;padding:2px 8px;'
+                                 'border-radius:4px;font-size:11px;">Approved</span>'),
+            'pending_approval': ('<span style="background:#fd7e14;color:#fff;padding:2px 8px;'
+                                 'border-radius:4px;font-size:11px;">Pending</span>'),
+            'rejected':         ('<span style="background:#dc3545;color:#fff;padding:2px 8px;'
+                                 'border-radius:4px;font-size:11px;">Rejected</span>'),
+            'draft':            ('<span style="background:#6c757d;color:#fff;padding:2px 8px;'
+                                 'border-radius:4px;font-size:11px;">Draft</span>'),
+        }
+        for co in self:
+            contract = co.contract_id
+            if not contract or not contract._origin.id:
+                co.co_history_html = ''
+                continue
+
+            approved_cos = self.env['contract.change_order'].search([
+                ('contract_id', '=', contract._origin.id),
+                ('state', '=', 'approved'),
+            ], order='date asc, name asc')
+
+            if not approved_cos:
+                co.co_history_html = (
+                    '<p style="color:#6c757d;padding:8px 0;">No approved Change Orders for this contract yet.</p>'
+                )
+                continue
+
+            rows = ''
+            for aco in approved_cos:
+                for line in aco.line_ids:
+                    change_detail = ''
+                    if line.change_type == 'change_qty':
+                        change_detail = f'Qty: {line.change_qty:+.2f}'
+                    elif line.change_type == 'change_price':
+                        change_detail = f'Price: → {line.new_unit_price:.2f}'
+                    elif line.change_type == 'change_qty_price':
+                        change_detail = f'Qty: {line.change_qty:+.2f} / Price: → {line.new_unit_price:.2f}'
+
+                    rows += (
+                        f'<tr>'
+                        f'<td>{aco.name}</td>'
+                        f'<td>{aco.date or "-"}</td>'
+                        f'<td>{line.original_description or "-"}</td>'
+                        f'<td style="text-align:right">{line.original_qty:.2f}</td>'
+                        f'<td style="text-align:right">{line.original_unit_price:.2f}</td>'
+                        f'<td>{_CHANGE_TYPE_LABEL.get(line.change_type, "-")}</td>'
+                        f'<td>{change_detail}</td>'
+                        f'<td style="text-align:right">{line.change_value:.2f}</td>'
+                        f'<td style="text-align:right">{line.change_percentage:.2f}%</td>'
+                        f'<td style="text-align:right;{"color:#dc3545;font-weight:bold;" if line.cumulative_change_percentage > 20 else ""}">'
+                        f'{line.cumulative_change_percentage:.2f}%</td>'
+                        f'<td>{aco.created_by_id.name or "-"}</td>'
+                        f'<td>{_STATE_BADGE.get(aco.state, aco.state)}</td>'
+                        f'</tr>'
+                    )
+
+            html = (
+                '<div style="margin-top:4px;">'
+                '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                '<thead>'
+                '<tr style="background:#2c3e50;color:#fff;">'
+                '<th style="padding:8px;text-align:left;">CO Number</th>'
+                '<th style="padding:8px;text-align:left;">Date</th>'
+                '<th style="padding:8px;text-align:left;">Work Item</th>'
+                '<th style="padding:8px;text-align:right;">Orig. Qty</th>'
+                '<th style="padding:8px;text-align:right;">Orig. Unit Price</th>'
+                '<th style="padding:8px;text-align:left;">Change Type</th>'
+                '<th style="padding:8px;text-align:left;">Change Details</th>'
+                '<th style="padding:8px;text-align:right;">Change Value</th>'
+                '<th style="padding:8px;text-align:right;">Change %</th>'
+                '<th style="padding:8px;text-align:right;">Cumulative %</th>'
+                '<th style="padding:8px;text-align:left;">Created By</th>'
+                '<th style="padding:8px;text-align:left;">Status</th>'
+                '</tr>'
+                '</thead>'
+                f'<tbody>{rows}</tbody>'
+                '</table>'
+                '</div>'
+            )
+            co.co_history_html = html
 
     @api.depends('total_change_percentage', 'contract_id')
     def _compute_cumulative_total(self):

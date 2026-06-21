@@ -66,30 +66,6 @@ class ChangeOrderLine(models.Model):
         compute='_compute_cumulative', store=False, digits=(16, 4),
     )
 
-    # ── Related from parent CO (used in contract history tab) ────────────────
-    contract_id = fields.Many2one(
-        'contract.contract',
-        related='change_order_id.contract_id',
-        store=True, readonly=True,
-    )
-    co_name = fields.Char(
-        related='change_order_id.name', store=True, readonly=True,
-        string='CO Number',
-    )
-    co_date = fields.Date(
-        related='change_order_id.date', store=True, readonly=True,
-        string='CO Date',
-    )
-    co_created_by_id = fields.Many2one(
-        'res.users',
-        related='change_order_id.created_by_id', store=True, readonly=True,
-        string='Created By',
-    )
-    co_state = fields.Selection(
-        related='change_order_id.state', store=True, readonly=True,
-        string='Status',
-    )
-
     # ── Currency (from contract) ───────────────────────────────────────────────
     currency_id = fields.Many2one(
         related='change_order_id.currency_id', readonly=True,
