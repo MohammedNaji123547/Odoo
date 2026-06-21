@@ -122,12 +122,15 @@ class ChangeOrderLine(models.Model):
                 line.cumulative_change_percentage = line.change_percentage
                 continue
 
-            # Sum change % from all OTHER approved COs on the same contract
-            approved_cos = self.env['contract.change_order'].search([
+            # Sum change % from all OTHER approved COs (exclude current safely)
+            co_id = line.change_order_id._origin.id
+            domain = [
                 ('contract_id', '=', contract.id),
                 ('state', '=', 'approved'),
-                ('id', '!=', line.change_order_id.id),
-            ])
+            ]
+            if co_id:
+                domain.append(('id', '!=', co_id))
+            approved_cos = self.env['contract.change_order'].search(domain)
             prev_pct = sum(
                 co_line.change_percentage
                 for co in approved_cos
