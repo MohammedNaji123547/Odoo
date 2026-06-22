@@ -74,6 +74,13 @@
                             type="object"
                             invisible="state not in ('rejected', 'cancelled')"/>
 
+                    <!-- Print (available from submitted onward) -->
+                    <button name="%(invoice_request.action_report_invoice_request)d"
+                            string="Print Invoice Request"
+                            type="action"
+                            invisible="state not in ('submitted', 'finance_approved')"
+                            class="btn-secondary"/>
+
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,in_review,submitted,finance_approved"/>
                 </header>

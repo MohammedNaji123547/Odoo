@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         REPORT ACTION
+         ══════════════════════════════════════════════════════════════ -->
+    <record id="action_report_invoice_request" model="ir.actions.report">
+        <field name="name">Invoice Request</field>
+        <field name="model">invoice.request</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">invoice_request.report_invoice_request_document</field>
+        <field name="report_file">invoice_request/report/invoice_request_report</field>
+        <field name="binding_model_id" ref="model_invoice_request"/>
+        <field name="binding_type">report</field>
+        <field name="paperformat_id" ref="base.paperformat_euro"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════
+         QWEB TEMPLATE
+         ══════════════════════════════════════════════════════════════ -->
+    <template id="report_invoice_request_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+
+                        <!-- ── Title bar ─────────────────────────────── -->
+                        <div style="background:#1f3864;color:#fff;padding:14px 20px;
+                                    margin-bottom:20px;border-radius:4px;">
+                            <table width="100%" style="border-collapse:collapse;">
+                                <tr>
+                                    <td style="vertical-align:middle;">
+                                        <h2 style="margin:0;color:#fff;font-size:20px;
+                                                   letter-spacing:1px;">
+                                            INVOICE REQUEST
+                                        </h2>
+                                        <div style="font-size:11px;opacity:.85;margin-top:3px;">
+                                            Contractor Payment Approval Document
+                                        </div>
+                                    </td>
+                                    <td style="text-align:right;vertical-align:middle;">
+                                        <div style="font-size:18px;font-weight:bold;">
+                                            <t t-esc="o.name"/>
+                                        </div>
+                                        <div style="font-size:11px;opacity:.85;">
+                                            Date: <t t-esc="o.request_date"/>
+                                        </div>
+                                        <div style="margin-top:6px;">
+                                            <span t-attf-style="
+                                                background:#{
+                                                    o.state == 'finance_approved' and '#28a745' or
+                                                    o.state == 'submitted' and '#fd7e14' or
+                                                    o.state == 'in_review' and '#ffc107' or
+                                                    o.state in ('rejected','cancelled') and '#dc3545' or '#6c757d'
+                                                };
+                                                color:#fff;padding:3px 10px;border-radius:12px;
+                                                font-size:11px;font-weight:bold;">
+                                                <t t-esc="dict(o._fields['state'].selection).get(o.state, o.state)"/>
+                                            </span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- ── Header Details ────────────────────────── -->
+                        <table width="100%" style="border-collapse:collapse;
+                                                   margin-bottom:16px;font-size:11px;">
+                            <tr>
+                                <td width="50%" style="vertical-align:top;padding-right:10px;">
+                                    <table width="100%" style="border-collapse:collapse;
+                                                               border:1px solid #dee2e6;">
+                                        <tr style="background:#2c3e50;color:#fff;">
+                                            <th colspan="2" style="padding:7px 10px;font-size:11px;">
+                                                REQUEST DETAILS
+                                            </th>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;width:45%;
+                                                       border-bottom:1px solid #dee2e6;">Request No.</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.name"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Request Date</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.request_date"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Invoice Date</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.invoice_date or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Period</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.period_from or '—'"/>
+                                                <t t-if="o.period_to"> → <t t-esc="o.period_to"/></t>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;">Submitted By</td>
+                                            <td style="padding:6px 10px;">
+                                                <t t-esc="o.requester_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                                <td width="50%" style="vertical-align:top;padding-left:10px;">
+                                    <table width="100%" style="border-collapse:collapse;
+                                                               border:1px solid #dee2e6;">
+                                        <tr style="background:#2c3e50;color:#fff;">
+                                            <th colspan="2" style="padding:7px 10px;font-size:11px;">
+                                                CONTRACT REFERENCE
+                                            </th>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;width:45%;
+                                                       border-bottom:1px solid #dee2e6;">Vendor</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.partner_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Contract No.</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.contract_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Cost Center</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.analytic_account_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td style="padding:6px 10px;font-weight:bold;
+                                                       border-bottom:1px solid #dee2e6;">Project</td>
+                                            <td style="padding:6px 10px;border-bottom:1px solid #dee2e6;">
+                                                <t t-esc="o.project_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                        <tr style="background:#f8f9fa;">
+                                            <td style="padding:6px 10px;font-weight:bold;">Currency</td>
+                                            <td style="padding:6px 10px;">
+                                                <t t-esc="o.currency_id.name or '—'"/>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- ── Invoice Lines ─────────────────────────── -->
+                        <div style="border:1px solid #dee2e6;margin-bottom:16px;
+                                    border-radius:3px;">
+                            <div style="background:#2c3e50;color:#fff;
+                                        padding:7px 10px;font-size:11px;font-weight:bold;">
+                                INVOICE LINES
+                            </div>
+                            <table width="100%" style="border-collapse:collapse;font-size:10px;">
+                                <thead>
+                                    <tr style="background:#495057;color:#fff;">
+                                        <th style="padding:6px 8px;text-align:left;
+                                                   border:1px solid #6c757d;">#</th>
+                                        <th style="padding:6px 8px;text-align:left;
+                                                   border:1px solid #6c757d;">Description</th>
+                                        <th style="padding:6px 8px;text-align:center;
+                                                   border:1px solid #6c757d;">Unit</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Current QTY</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Current Rate</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Current Amount</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Completed QTY</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Remaining QTY</th>
+                                        <th style="padding:6px 8px;text-align:right;
+                                                   border:1px solid #6c757d;">Billing Amount</th>
+                                        <th style="padding:6px 8px;text-align:center;
+                                                   border:1px solid #6c757d;">CO</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="o.line_ids" t-as="line">
+                                        <tr t-attf-style="background:#{
+                                            line.has_approved_co and '#fff8e1' or
+                                            (line_index % 2 == 0 and '#ffffff' or '#f8f9fa')
+                                        };">
+                                            <td style="padding:6px 8px;border:1px solid #dee2e6;
+                                                       text-align:center;width:30px;">
+                                                <t t-esc="line_index + 1"/>
+                                            </td>
+                                            <td style="padding:6px 8px;border:1px solid #dee2e6;">
+                                                <t t-esc="line.description"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:center;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="line.uom or '—'"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(line.qty)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(line.unit_price)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(line.contract_amount)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;">
+                                                <t t-esc="'{:,.2f}'.format(line.completed_qty)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;">
+                                                <t t-esc="'{:,.2f}'.format(line.remaining_qty)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:right;
+                                                       border:1px solid #dee2e6;font-weight:bold;
+                                                       color:#155724;">
+                                                <t t-esc="'{:,.2f}'.format(line.billing_amount)"/>
+                                            </td>
+                                            <td style="padding:6px 8px;text-align:center;
+                                                       border:1px solid #dee2e6;font-size:9px;">
+                                                <t t-if="line.has_approved_co">
+                                                    <span style="background:#fff3cd;color:#856404;
+                                                                 padding:2px 6px;border-radius:10px;
+                                                                 font-weight:bold;white-space:nowrap;">
+                                                        &#9888; CO
+                                                    </span>
+                                                </t>
+                                            </td>
+                                        </tr>
+                                        <!-- CO details sub-row -->
+                                        <t t-if="line.has_approved_co">
+                                            <tr style="background:#fff8e1;">
+                                                <td></td>
+                                                <td colspan="9"
+                                                    style="padding:4px 8px 6px 8px;
+                                                           border:1px solid #dee2e6;
+                                                           font-size:9px;color:#856404;
+                                                           font-style:italic;">
+                                                    &#9888; Modified by Change Order(s):
+                                                    <strong><t t-esc="line.co_tag"/></strong>
+                                                    — quantities and rates reflect current approved values.
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </t>
+                                </tbody>
+                                <tfoot>
+                                    <tr style="background:#1f3864;color:#fff;font-weight:bold;">
+                                        <td colspan="8"
+                                            style="padding:8px 10px;text-align:right;
+                                                   border:1px solid #6c757d;">
+                                            TOTAL BILLING AMOUNT
+                                        </td>
+                                        <td style="padding:8px 10px;text-align:right;
+                                                   border:1px solid #6c757d;font-size:13px;">
+                                            <t t-esc="'{:,.2f}'.format(o.total_amount)"/>
+                                            <t t-esc="o.currency_id.name"/>
+                                        </td>
+                                        <td style="border:1px solid #6c757d;"></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- ── Notes ─────────────────────────────────── -->
+                        <t t-if="o.notes">
+                            <div style="border:1px solid #dee2e6;margin-bottom:16px;
+                                        border-radius:3px;">
+                                <div style="background:#2c3e50;color:#fff;
+                                            padding:7px 10px;font-size:11px;font-weight:bold;">
+                                    NOTES / JUSTIFICATION
+                                </div>
+                                <div style="padding:10px;font-size:11px;white-space:pre-wrap;">
+                                    <t t-esc="o.notes"/>
+                                </div>
+                            </div>
+                        </t>
+
+                        <!-- ── Approval Chain ────────────────────────── -->
+                        <t t-if="o.approver_ids">
+                            <div style="border:1px solid #dee2e6;margin-bottom:16px;
+                                        border-radius:3px;">
+                                <div style="background:#2c3e50;color:#fff;
+                                            padding:7px 10px;font-size:11px;font-weight:bold;">
+                                    APPROVAL CHAIN
+                                </div>
+                                <table width="100%"
+                                       style="border-collapse:collapse;font-size:11px;">
+                                    <thead>
+                                        <tr style="background:#f8f9fa;">
+                                            <th style="padding:6px 10px;text-align:center;
+                                                       border:1px solid #dee2e6;width:60px;">Step</th>
+                                            <th style="padding:6px 10px;text-align:left;
+                                                       border:1px solid #dee2e6;">Approver</th>
+                                            <th style="padding:6px 10px;text-align:center;
+                                                       border:1px solid #dee2e6;width:120px;">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <t t-foreach="o.approver_ids.sorted('sequence')"
+                                           t-as="approver">
+                                            <tr t-attf-style="background:#{approver_index % 2 == 0 and '#fff' or '#f8f9fa'};">
+                                                <td style="padding:6px 10px;text-align:center;
+                                                           border:1px solid #dee2e6;">
+                                                    <t t-esc="approver.sequence"/>
+                                                </td>
+                                                <td style="padding:6px 10px;
+                                                           border:1px solid #dee2e6;">
+                                                    <t t-esc="approver.user_id.name"/>
+                                                </td>
+                                                <td style="padding:6px 10px;text-align:center;
+                                                           border:1px solid #dee2e6;">
+                                                    <span t-attf-style="
+                                                        padding:2px 10px;border-radius:10px;
+                                                        font-size:10px;font-weight:bold;
+                                                        background:#{
+                                                            approver.status == 'approved' and '#d4edda' or
+                                                            approver.status == 'rejected' and '#f8d7da' or '#fff3cd'
+                                                        };
+                                                        color:#{
+                                                            approver.status == 'approved' and '#155724' or
+                                                            approver.status == 'rejected' and '#721c24' or '#856404'
+                                                        };">
+                                                        <t t-esc="approver.status.capitalize()"/>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </t>
+
+                        <!-- ── Finance Approval ──────────────────────── -->
+                        <t t-if="o.state == 'finance_approved'">
+                            <div style="border:1px solid #dee2e6;margin-bottom:20px;
+                                        border-radius:3px;">
+                                <div style="background:#155724;color:#fff;
+                                            padding:7px 10px;font-size:11px;font-weight:bold;">
+                                    FINANCE APPROVAL
+                                </div>
+                                <table width="100%"
+                                       style="border-collapse:collapse;font-size:11px;">
+                                    <tr style="background:#f8f9fa;">
+                                        <td style="padding:8px 12px;font-weight:bold;width:30%;
+                                                   border:1px solid #dee2e6;">Approved by Finance</td>
+                                        <td style="padding:8px 12px;border:1px solid #dee2e6;">
+                                            <t t-esc="o.finance_user_id.name or '—'"/>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding:8px 12px;font-weight:bold;
+                                                   border:1px solid #dee2e6;">Vendor Bill</td>
+                                        <td style="padding:8px 12px;border:1px solid #dee2e6;">
+                                            <t t-esc="o.vendor_bill_id.name or '—'"/>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </t>
+
+                        <!-- ── Signature Block ───────────────────────── -->
+                        <div style="border:1px solid #dee2e6;border-radius:3px;
+                                    page-break-inside:avoid;">
+                            <div style="background:#2c3e50;color:#fff;
+                                        padding:7px 10px;font-size:11px;font-weight:bold;">
+                                SIGNATURES
+                            </div>
+                            <table width="100%"
+                                   style="border-collapse:collapse;font-size:11px;">
+                                <tr>
+                                    <td style="padding:20px;border-right:1px solid #dee2e6;
+                                               width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Prepared By (Requester)
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                    <td style="padding:20px;border-right:1px solid #dee2e6;
+                                               width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Reviewed &amp; Approved By
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                    <td style="padding:20px;width:33%;">
+                                        <div style="font-weight:bold;margin-bottom:40px;">
+                                            Finance Approval
+                                        </div>
+                                        <div style="border-top:1px solid #333;
+                                                    padding-top:4px;font-size:10px;">
+                                            Name / Date
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                    </div><!-- /page -->
+                </t><!-- /external_layout -->
+            </t>
+        </t>
+    </template>
+
+</odoo>

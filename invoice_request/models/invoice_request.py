@@ -379,9 +379,10 @@ class InvoiceRequest(models.Model):
             lines = [(0, 0, {
                 'contract_line_id': l.id,
                 'description': l.description,
-                'qty': l.qty,
+                # Use current approved values (reflect any approved Change Orders)
+                'qty': l.current_qty or l.qty,
                 'uom': l.uom,
-                'unit_price': l.unit_price,
+                'unit_price': l.current_unit_price or l.unit_price,
             }) for l in self.contract_id.line_ids]
             self.line_ids = [(5, 0, 0)] + lines
         else:
