@@ -35,7 +35,7 @@ class LogisticsAttendance(models.Model):
         ('present', 'Present'),
         ('absent',  'Absent'),
         ('partial', 'Partial'),
-    ], string='Attendance Status', default='pending', required=True, tracking=True)
+    ], string='Attendance Status', default='pending', required=True)
     actual_qty = fields.Float(string='Actual Qty Attended', digits=(16, 2))
     working_hours = fields.Float(string='Working Hours', digits=(16, 2))
     remarks = fields.Char(string='Remarks')
