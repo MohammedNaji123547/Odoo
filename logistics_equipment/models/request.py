@@ -1,3 +1,4 @@
+from datetime import timedelta
 from odoo import models, fields, api, _
 from odoo.exceptions import ValidationError, UserError
 
@@ -202,14 +203,13 @@ class LogisticsRequest(models.Model):
                 current = line.start_date
                 while current <= line.end_date:
                     Attendance.create({
-                        'request_id':     rec.id,
+                        'request_id':      rec.id,
                         'request_line_id': line.id,
-                        'equipment_id':   line.equipment_id.id,
-                        'supplier_id':    line.supplier_id.id or False,
+                        'equipment_id':    line.equipment_id.id,
+                        'supplier_id':     line.supplier_id.id or False,
                         'attendance_date': current,
-                        'planned_qty':    line.available_qty or line.requested_qty,
-                        'daily_rate':     line.daily_rate,
-                        'status':         'pending',
+                        'planned_qty':     line.available_qty or line.requested_qty,
+                        'daily_rate':      line.daily_rate,
+                        'status':          'pending',
                     })
-                    from datetime import timedelta
                     current += timedelta(days=1)

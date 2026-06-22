@@ -5,8 +5,7 @@
     <menuitem id="menu_logistics_root"
               name="Logistics Equipment"
               sequence="60"
-              groups="logistics_equipment.group_requester"
-              web_icon="logistics_equipment,static/description/icon.png"/>
+              groups="logistics_equipment.group_requester"/>
 
     <!-- ── Equipment Requests ─────────────────────────────────────────── -->
     <menuitem id="menu_logistics_requests"

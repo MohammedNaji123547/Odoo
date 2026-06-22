@@ -80,13 +80,10 @@
 
                     <notebook>
 
-                        <!-- ── Equipment Request Lines ── -->
-                        <page string="Equipment Lines">
-
-                            <!-- Requester columns: editable only in Draft -->
-                            <field name="line_ids"
-                                   readonly="state != 'draft'"
-                                   invisible="state in ('logistics_review', 'attendance_confirmation', 'completed', 'cancelled')">
+                        <!-- ── Tab 1: Requester lines (visible in draft) ── -->
+                        <page string="Equipment Lines"
+                              invisible="state != 'draft'">
+                            <field name="line_ids" readonly="state != 'draft'">
                                 <tree editable="bottom" string="Equipment Lines">
                                     <field name="sequence" widget="handle"/>
                                     <field name="equipment_id" options="{'no_create': True}"/>
@@ -102,11 +99,13 @@
                                     <field name="requester_remarks"/>
                                 </tree>
                             </field>
+                        </page>
 
-                            <!-- Logistics Review columns: editable only in Logistics Review -->
+                        <!-- ── Tab 2: Logistics Review (visible after submission) ── -->
+                        <page string="Equipment Lines"
+                              invisible="state == 'draft'">
                             <field name="line_ids"
-                                   readonly="state != 'logistics_review'"
-                                   invisible="state not in ('logistics_review', 'attendance_confirmation', 'completed', 'cancelled')">
+                                   readonly="state != 'logistics_review'">
                                 <tree editable="bottom" string="Logistics Review"
                                       decoration-success="availability_status == 'available'"
                                       decoration-danger="availability_status == 'not_available'">
@@ -226,7 +225,6 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
         <field name="binding_model_id" ref="model_logistics_attendance"/>
-        <field name="binding_views">list</field>
     </record>
 
 </odoo>
