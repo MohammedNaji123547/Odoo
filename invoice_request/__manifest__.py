@@ -17,6 +17,7 @@
         'security/ir.model.access.csv',
         'data/sequences.xml',
         'wizard/views/invoice_request_wizard_views.xml',
+        'report/invoice_request_report.xml',
         'views/invoice_request_views.xml',
         'views/menu.xml',
     ],
