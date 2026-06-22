@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Top-level menu ─────────────────────────────────────────────── -->
+    <menuitem id="menu_logistics_root"
+              name="Logistics Equipment"
+              sequence="60"
+              groups="logistics_equipment.group_requester"
+              web_icon="logistics_equipment,static/description/icon.png"/>
+
+    <!-- ── Equipment Requests ─────────────────────────────────────────── -->
+    <menuitem id="menu_logistics_requests"
+              name="Equipment Requests"
+              parent="menu_logistics_root"
+              action="action_logistics_request"
+              sequence="10"
+              groups="logistics_equipment.group_requester"/>
+
+    <!-- ── Attendance ─────────────────────────────────────────────────── -->
+    <menuitem id="menu_attendance_root"
+              name="Attendance"
+              parent="menu_logistics_root"
+              sequence="20"
+              groups="logistics_equipment.group_logistics"/>
+
+    <menuitem id="menu_attendance_all"
+              name="All Attendance"
+              parent="menu_attendance_root"
+              action="action_attendance_all"
+              sequence="10"/>
+
+    <menuitem id="menu_attendance_today"
+              name="Today's Attendance"
+              parent="menu_attendance_root"
+              action="action_attendance_today"
+              sequence="20"/>
+
+    <menuitem id="menu_attendance_pending"
+              name="Pending Attendance"
+              parent="menu_attendance_root"
+              action="action_attendance_pending"
+              sequence="30"/>
+
+    <menuitem id="menu_attendance_missing"
+              name="Missing Attendance"
+              parent="menu_attendance_root"
+              action="action_attendance_missing"
+              sequence="40"/>
+
+    <menuitem id="menu_attendance_completed"
+              name="Completed Attendance"
+              parent="menu_attendance_root"
+              action="action_attendance_completed"
+              sequence="50"/>
+
+    <!-- ── Configuration ──────────────────────────────────────────────── -->
+    <menuitem id="menu_logistics_config"
+              name="Configuration"
+              parent="menu_logistics_root"
+              sequence="90"
+              groups="logistics_equipment.group_management"/>
+
+    <menuitem id="menu_equipment_master"
+              name="Equipment Master List"
+              parent="menu_logistics_config"
+              action="action_equipment"
+              sequence="10"/>
+
+    <menuitem id="menu_equipment_categories"
+              name="Equipment Categories"
+              parent="menu_logistics_config"
+              action="action_equipment_category"
+              sequence="20"/>
+
+</odoo>

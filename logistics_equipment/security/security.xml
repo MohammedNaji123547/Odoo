@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_logistics" model="ir.module.category">
+        <field name="name">Logistics Equipment</field>
+        <field name="sequence">50</field>
+    </record>
+
+    <!-- Requester: any department user who can raise requests -->
+    <record id="group_requester" model="res.groups">
+        <field name="name">Requester</field>
+        <field name="category_id" ref="module_category_logistics"/>
+    </record>
+
+    <!-- Logistics Team: reviews requests, confirms attendance -->
+    <record id="group_logistics" model="res.groups">
+        <field name="name">Logistics Team</field>
+        <field name="category_id" ref="module_category_logistics"/>
+        <field name="implied_ids" eval="[(4, ref('group_requester'))]"/>
+    </record>
+
+    <!-- Management: full access including configuration -->
+    <record id="group_management" model="res.groups">
+        <field name="name">Management</field>
+        <field name="category_id" ref="module_category_logistics"/>
+        <field name="implied_ids" eval="[(4, ref('group_logistics'))]"/>
+    </record>
+</odoo>
