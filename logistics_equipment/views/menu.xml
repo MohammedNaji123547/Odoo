@@ -52,6 +52,14 @@
               action="action_attendance_completed"
               sequence="50"/>
 
+    <!-- ── Import / Export ───────────────────────────────────────────── -->
+    <menuitem id="menu_attendance_import_export"
+              name="Import / Export"
+              parent="menu_attendance_root"
+              action="action_attendance_import_wizard"
+              sequence="60"
+              groups="logistics_equipment.group_logistics"/>
+
     <!-- ── Configuration ──────────────────────────────────────────────── -->
     <menuitem id="menu_logistics_config"
               name="Configuration"
