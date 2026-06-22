@@ -198,8 +198,6 @@
                         domain="[('state','=','completed')]"/>
                 <filter name="my_requests"  string="My Requests"
                         domain="[('requester_id','=',uid)]"/>
-                <filter name="pending_att"  string="Has Pending Attendance"
-                        domain="[('pending_attendance_count','>',0)]"/>
                 <group expand="0" string="Group By">
                     <filter name="by_state"  string="Status"
                             context="{'group_by': 'state'}"/>
