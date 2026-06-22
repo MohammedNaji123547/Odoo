@@ -59,9 +59,26 @@ class LogisticsAttendance(models.Model):
     currency_id = fields.Many2one(
         related='equipment_id.currency_id', readonly=True
     )
+    equipment_category_id = fields.Many2one(
+        related='equipment_id.category_id', string='Category',
+        store=True, readonly=True
+    )
+    attendance_rate = fields.Float(
+        string='Attendance Rate %',
+        compute='_compute_attendance_rate', store=True,
+        digits=(5, 1), group_operator='avg',
+    )
     display_name = fields.Char(
         compute='_compute_display_name', store=True
     )
+
+    @api.depends('actual_qty', 'planned_qty', 'status')
+    def _compute_attendance_rate(self):
+        for rec in self:
+            if rec.status == 'absent' or not rec.planned_qty:
+                rec.attendance_rate = 0.0
+            else:
+                rec.attendance_rate = min(100.0, (rec.actual_qty / rec.planned_qty) * 100.0)
 
     @api.depends('equipment_id', 'attendance_date')
     def _compute_display_name(self):
