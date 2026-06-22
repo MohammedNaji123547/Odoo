@@ -154,17 +154,26 @@
                                 <!-- ── Invoice Lines ── -->
                                 <page string="Invoice Lines">
                                     <field name="line_ids" readonly="state != 'draft'">
-                                        <tree editable="bottom">
+                                        <tree editable="bottom"
+                                              decoration-warning="has_approved_co == True">
                                             <field name="sequence" widget="handle"/>
                                             <field name="contract_line_id" invisible="1" force_save="1"/>
+                                            <field name="has_approved_co" invisible="1"/>
                                             <field name="description" readonly="1" force_save="1"/>
-                                            <field name="qty" readonly="1" force_save="1"/>
-                                            <field name="uom" readonly="1" force_save="1"/>
-                                            <field name="unit_price" readonly="1" force_save="1"/>
-                                            <field name="contract_amount" readonly="1"/>
+                                            <field name="uom" readonly="1" force_save="1" string="Unit"/>
+                                            <field name="qty" readonly="1" force_save="1"
+                                                   string="Current QTY"/>
+                                            <field name="unit_price" readonly="1" force_save="1"
+                                                   string="Current Rate"/>
+                                            <field name="contract_amount" readonly="1"
+                                                   string="Current Amount"/>
                                             <field name="completed_qty"/>
                                             <field name="remaining_qty" readonly="1"/>
                                             <field name="billing_amount" readonly="1"/>
+                                            <field name="co_tag" readonly="1"
+                                                   string="CO"
+                                                   optional="show"
+                                                   decoration-warning="co_tag != False"/>
                                         </tree>
                                     </field>
                                     <group class="oe_subtotal_footer oe_right">
