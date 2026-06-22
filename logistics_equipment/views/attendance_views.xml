@@ -8,6 +8,7 @@
         <field name="arch" type="xml">
             <form string="Attendance Excel Import / Export">
                 <sheet>
+                    <field name="state" invisible="1"/>
                     <notebook>
 
                         <!-- ── Tab 1: Download ── -->
