@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sequence_logistics_request" model="ir.sequence">
+        <field name="name">Logistics Equipment Request</field>
+        <field name="code">logistics.request</field>
+        <field name="prefix">LEQ/%(year)s/</field>
+        <field name="padding">4</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+</odoo>

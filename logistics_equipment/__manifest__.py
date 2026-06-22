@@ -1,0 +1,20 @@
+{
+    'name': 'Logistics Equipment Management',
+    'version': '17.0.1.0.0',
+    'category': 'Operations/Logistics',
+    'summary': 'Equipment request, attendance tracking, cost and overtime management',
+    'author': 'Your Company',
+    'depends': ['base', 'mail', 'analytic', 'project', 'hr', 'contract_management'],
+    'data': [
+        'security/security.xml',
+        'security/ir.model.access.csv',
+        'data/sequence.xml',
+        'views/equipment_views.xml',
+        'views/attendance_views.xml',
+        'views/request_views.xml',
+        'views/menu.xml',
+    ],
+    'installable': True,
+    'application': True,
+    'license': 'LGPL-3',
+}

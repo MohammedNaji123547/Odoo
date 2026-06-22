@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══ FORM VIEW ═════════════════════════════════════════════════════════ -->
+    <record id="view_logistics_request_form" model="ir.ui.view">
+        <field name="name">logistics.request.form</field>
+        <field name="model">logistics.request</field>
+        <field name="arch" type="xml">
+            <form string="Equipment Request">
+                <header>
+                    <button name="action_submit_logistics" string="Submit for Logistics Review"
+                            type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_submit_attendance" string="Proceed to Attendance Confirmation"
+                            type="object" class="btn-primary"
+                            invisible="state != 'logistics_review'"
+                            groups="logistics_equipment.group_logistics"/>
+                    <button name="action_complete" string="Complete"
+                            type="object" class="btn-success"
+                            invisible="state != 'attendance_confirmation'"
+                            groups="logistics_equipment.group_logistics"/>
+                    <button name="action_force_complete" string="Force Complete"
+                            type="object"
+                            invisible="state != 'attendance_confirmation'"
+                            groups="logistics_equipment.group_management"/>
+                    <button name="action_cancel" string="Cancel"
+                            type="object"
+                            invisible="state in ('completed', 'cancelled')"
+                            groups="logistics_equipment.group_logistics"/>
+                    <button name="action_reset_draft" string="Reset to Draft"
+                            type="object"
+                            invisible="state not in ('cancelled',)"
+                            groups="logistics_equipment.group_logistics"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,logistics_review,attendance_confirmation,completed"/>
+                </header>
+
+                <sheet>
+                    <!-- Smart button: attendance records -->
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_attendance" type="object"
+                                class="oe_stat_button" icon="fa-calendar-check-o"
+                                invisible="attendance_count == 0">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="attendance_count"/>
+                                </span>
+                                <span class="o_stat_text">Attendance</span>
+                            </div>
+                        </button>
+                        <button name="action_view_attendance" type="object"
+                                class="oe_stat_button" icon="fa-clock-o"
+                                invisible="pending_attendance_count == 0">
+                            <div class="o_stat_info">
+                                <span class="o_stat_value" style="color:#fd7e14;">
+                                    <field name="pending_attendance_count"/>
+                                </span>
+                                <span class="o_stat_text">Pending</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <!-- Requester Info (always read-only) -->
+                    <group string="Requester Information">
+                        <group>
+                            <field name="requester_id" readonly="1"/>
+                            <field name="requester_name" readonly="1"/>
+                            <field name="requester_email" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="department_id" readonly="1"/>
+                            <field name="job_position" readonly="1"/>
+                            <field name="request_date" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+
+                        <!-- ── Tab 1: Requester lines (visible in draft) ── -->
+                        <page string="Equipment Lines"
+                              invisible="state != 'draft'">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom" string="Equipment Lines">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="equipment_id" options="{'no_create': True}"/>
+                                    <field name="equipment_category" readonly="1" optional="show"/>
+                                    <field name="requested_qty"/>
+                                    <field name="analytic_account_id" optional="show"
+                                           options="{'no_create': True}"/>
+                                    <field name="project_id" optional="show"
+                                           options="{'no_create': True}"/>
+                                    <field name="start_date"/>
+                                    <field name="end_date"/>
+                                    <field name="required_days" readonly="1"/>
+                                    <field name="requester_remarks"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <!-- ── Tab 2: Logistics Review (visible after submission) ── -->
+                        <page string="Equipment Lines"
+                              invisible="state == 'draft'">
+                            <field name="line_ids"
+                                   readonly="state != 'logistics_review'">
+                                <tree editable="bottom" string="Logistics Review"
+                                      decoration-success="availability_status == 'available'"
+                                      decoration-danger="availability_status == 'not_available'">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="equipment_id" readonly="1"
+                                           options="{'no_create': True}"/>
+                                    <field name="requested_qty" readonly="1" string="Req. Qty"/>
+                                    <field name="start_date" readonly="1"/>
+                                    <field name="end_date" readonly="1"/>
+                                    <field name="required_days" readonly="1"/>
+                                    <field name="availability_status"/>
+                                    <field name="available_qty"/>
+                                    <field name="supplier_id" options="{'no_create': True}"/>
+                                    <field name="customized_price"/>
+                                    <field name="daily_rate"
+                                           readonly="customized_price != 'yes'"/>
+                                    <field name="planned_cost" readonly="1" string="Planned Cost"/>
+                                    <field name="logistics_remarks" optional="show"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+
+                        <!-- ── Notes ── -->
+                        <page string="Notes">
+                            <field name="notes" readonly="state != 'draft'"
+                                   placeholder="Add any additional notes or justification..."/>
+                        </page>
+
+                    </notebook>
+                </sheet>
+
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══ LIST VIEW ═════════════════════════════════════════════════════════ -->
+    <record id="view_logistics_request_list" model="ir.ui.view">
+        <field name="name">logistics.request.list</field>
+        <field name="model">logistics.request</field>
+        <field name="arch" type="xml">
+            <tree string="Equipment Requests"
+                  decoration-info="state == 'draft'"
+                  decoration-warning="state == 'logistics_review'"
+                  decoration-primary="state == 'attendance_confirmation'"
+                  decoration-success="state == 'completed'"
+                  decoration-danger="state == 'cancelled'">
+                <field name="name"/>
+                <field name="request_date"/>
+                <field name="requester_id"/>
+                <field name="department_id"/>
+                <field name="total_lines" string="Items"/>
+                <field name="available_lines" string="Available"/>
+                <field name="attendance_count" string="Attendance"/>
+                <field name="pending_attendance_count" string="Pending"
+                       decoration-warning="pending_attendance_count > 0"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'logistics_review'"
+                       decoration-primary="state == 'attendance_confirmation'"
+                       decoration-success="state == 'completed'"
+                       decoration-danger="state == 'cancelled'"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══ SEARCH VIEW ═══════════════════════════════════════════════════════ -->
+    <record id="view_logistics_request_search" model="ir.ui.view">
+        <field name="name">logistics.request.search</field>
+        <field name="model">logistics.request</field>
+        <field name="arch" type="xml">
+            <search string="Search Requests">
+                <field name="name" string="Request No."/>
+                <field name="requester_id"/>
+                <field name="department_id"/>
+                <separator/>
+                <filter name="draft"        string="Draft"
+                        domain="[('state','=','draft')]"/>
+                <filter name="review"       string="Logistics Review"
+                        domain="[('state','=','logistics_review')]"/>
+                <filter name="attendance"   string="Attendance Confirmation"
+                        domain="[('state','=','attendance_confirmation')]"/>
+                <filter name="completed"    string="Completed"
+                        domain="[('state','=','completed')]"/>
+                <filter name="my_requests"  string="My Requests"
+                        domain="[('requester_id','=',uid)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="by_state"  string="Status"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="by_dept"   string="Department"
+                            context="{'group_by': 'department_id'}"/>
+                    <filter name="by_date"   string="Request Date"
+                            context="{'group_by': 'request_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══ ACTIONS ════════════════════════════════════════════════════════════ -->
+    <record id="action_logistics_request" model="ir.actions.act_window">
+        <field name="name">Equipment Requests</field>
+        <field name="res_model">logistics.request</field>
+        <field name="view_mode">tree,form</field>
+        <field name="search_view_id" ref="view_logistics_request_search"/>
+        <field name="context">{'search_default_my_requests': 1}</field>
+    </record>
+
+    <!-- Bulk confirm wizard action -->
+    <record id="action_bulk_confirm_wizard" model="ir.actions.act_window">
+        <field name="name">Confirm All Today's Attendance</field>
+        <field name="res_model">logistics.bulk.confirm.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_logistics_attendance"/>
+    </record>
+
+</odoo>
