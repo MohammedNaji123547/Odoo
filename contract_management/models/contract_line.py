@@ -4,6 +4,7 @@ from odoo import models, fields, api
 class ContractLine(models.Model):
     _name = 'contract.line'
     _description = 'Contract Line Item'
+    _rec_name = 'description'
 
     contract_id = fields.Many2one(
         'contract.contract', required=True, ondelete='cascade'
