@@ -21,8 +21,7 @@
                         domain="[('overtime_hours','>',0)]"/>
                 <separator/>
                 <filter name="this_month" string="This Month"
-                        domain="[('attendance_date','&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d')),
-                                 ('attendance_date','&lt;=', (context_today() + relativedelta(day=31)).strftime('%Y-%m-%d'))]"/>
+                        domain="[('attendance_date','&gt;=', context_today().strftime('%Y-%m-01'))]"/>
                 <group expand="1" string="Group By">
                     <filter name="by_equipment"  string="Equipment"
                             context="{'group_by': 'equipment_id'}"/>
