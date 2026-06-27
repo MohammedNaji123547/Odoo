@@ -12,3 +12,4 @@ access_attendance_management,attendance.management,model_logistics_attendance,lo
 access_rate_audit_logistics,rate.audit.logistics,model_logistics_rate_audit,logistics_equipment.group_logistics,1,1,1,0
 access_rate_audit_management,rate.audit.management,model_logistics_rate_audit,logistics_equipment.group_management,1,1,1,1
 access_bulk_confirm_wizard,bulk.confirm.wizard,model_logistics_bulk_confirm_wizard,base.group_user,1,1,1,0
+access_attendance_import_wizard,attendance.import.wizard,model_logistics_attendance_import_wizard,logistics_equipment.group_logistics,1,1,1,0

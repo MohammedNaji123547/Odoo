@@ -12,6 +12,7 @@
         'views/equipment_views.xml',
         'views/attendance_views.xml',
         'views/request_views.xml',
+        'views/report_views.xml',
         'views/menu.xml',
     ],
     'installable': True,

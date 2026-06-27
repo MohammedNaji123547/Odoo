@@ -52,6 +52,45 @@
               action="action_attendance_completed"
               sequence="50"/>
 
+    <!-- ── Import / Export ───────────────────────────────────────────── -->
+    <menuitem id="menu_attendance_import_export"
+              name="Import / Export"
+              parent="menu_attendance_root"
+              action="action_attendance_import_wizard"
+              sequence="60"
+              groups="logistics_equipment.group_logistics"/>
+
+    <!-- ── Reports ───────────────────────────────────────────────────── -->
+    <menuitem id="menu_logistics_reports"
+              name="Reports"
+              parent="menu_logistics_root"
+              sequence="80"
+              groups="logistics_equipment.group_logistics"/>
+
+    <menuitem id="menu_report_utilization"
+              name="Equipment Utilization"
+              parent="menu_logistics_reports"
+              action="action_report_utilization"
+              sequence="10"/>
+
+    <menuitem id="menu_report_cost"
+              name="Cost Summary"
+              parent="menu_logistics_reports"
+              action="action_report_cost"
+              sequence="20"/>
+
+    <menuitem id="menu_report_hours"
+              name="Working Hours Analysis"
+              parent="menu_logistics_reports"
+              action="action_report_hours"
+              sequence="30"/>
+
+    <menuitem id="menu_report_supplier"
+              name="Supplier Performance"
+              parent="menu_logistics_reports"
+              action="action_report_supplier"
+              sequence="40"/>
+
     <!-- ── Configuration ──────────────────────────────────────────────── -->
     <menuitem id="menu_logistics_config"
               name="Configuration"

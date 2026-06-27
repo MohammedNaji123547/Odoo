@@ -1,6 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
+    <!-- ══ ATTENDANCE IMPORT / EXPORT WIZARD ════════════════════════════════ -->
+    <record id="view_attendance_import_wizard_form" model="ir.ui.view">
+        <field name="name">logistics.attendance.import.wizard.form</field>
+        <field name="model">logistics.attendance.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Attendance Excel Import / Export">
+                <sheet>
+                    <field name="state" invisible="1"/>
+                    <notebook>
+
+                        <!-- ── Tab 1: Download ── -->
+                        <page string="Download Template" invisible="state == 'done'">
+                            <div style="background:#e8f4fd;border-left:4px solid #1F4E79;
+                                        padding:10px 14px;margin-bottom:16px;border-radius:3px;">
+                                <strong>Step 1:</strong> Set filters below, then click
+                                <em>Download Template</em> to get an Excel file pre-filled
+                                with all <strong>pending</strong> attendance records.
+                                Fill in the Status, Actual Qty, Working Hours, and Remarks
+                                columns, then come back to the <em>Upload &amp; Import</em> tab.
+                            </div>
+                            <group>
+                                <group string="Date Range">
+                                    <field name="date_from"/>
+                                    <field name="date_to"/>
+                                </group>
+                                <group string="Optional Filter">
+                                    <field name="request_id" options="{'no_create': True}"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- ── Tab 2: Upload ── -->
+                        <page string="Upload &amp; Import" invisible="state == 'done'">
+                            <div style="background:#fff3cd;border-left:4px solid #ffc107;
+                                        padding:10px 14px;margin-bottom:16px;border-radius:3px;">
+                                <strong>Step 2:</strong> Upload the filled Excel template here.
+                                Only rows with Status = <em>present</em>, <em>partial</em>,
+                                or <em>absent</em> will be processed. Do not modify the ID column.
+                            </div>
+                            <group>
+                                <field name="import_file"
+                                       filename="import_filename"
+                                       widget="binary"
+                                       string="Excel File (.xlsx)"/>
+                                <field name="import_filename" invisible="1"/>
+                            </group>
+                        </page>
+
+                        <!-- ── Tab 3: Result ── -->
+                        <page string="Import Result" invisible="state != 'done'">
+                            <field name="result_message" readonly="1" nolabel="1"
+                                   style="font-family:monospace;white-space:pre-wrap;
+                                          font-size:13px;padding:8px;"/>
+                        </page>
+
+                    </notebook>
+                </sheet>
+                <footer>
+                    <button name="action_download_template"
+                            string="Download Template"
+                            type="object" class="btn-primary"
+                            invisible="state == 'done'"/>
+                    <button name="action_import"
+                            string="Import Attendance"
+                            type="object" class="btn-primary"
+                            invisible="state == 'done'"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open the wizard (appears in Action menu of the attendance list) -->
+    <record id="action_attendance_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import / Export Attendance</field>
+        <field name="res_model">logistics.attendance.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_logistics_attendance"/>
+    </record>
+
     <!-- ══ BULK CONFIRM WIZARD ═══════════════════════════════════════════════ -->
     <record id="view_bulk_confirm_wizard_form" model="ir.ui.view">
         <field name="name">logistics.bulk.confirm.wizard.form</field>
