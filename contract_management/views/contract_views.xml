@@ -74,25 +74,21 @@
                             invisible="state != 'evaluation'"
                             groups="contract_management.group_subcontractor_team"/>
 
-                    <!-- PENDING APPROVAL -->
-                    <button name="action_approve" string="Approve"
+                    <!-- PENDING APPROVAL: Sequential approver actions -->
+                    <button name="action_approver_approve" string="Approve"
                             type="object" class="btn-success"
-                            invisible="state != 'pending_approval'"
-                            groups="contract_management.group_management"/>
-                    <button name="action_reject" string="Reject"
+                            invisible="not is_current_approver"/>
+                    <button name="action_approver_reject" string="Reject"
                             type="object" class="btn-danger"
-                            invisible="state != 'pending_approval'"
-                            groups="contract_management.group_management"/>
-                    <button name="action_resubmit_contracting"
+                            invisible="not is_current_approver"/>
+                    <button name="action_approver_resubmit_contracting"
                             string="Resubmit to Contracting"
                             type="object"
-                            invisible="state != 'pending_approval' or contract_type == 'unit_rate_ctr'"
-                            groups="contract_management.group_management"/>
-                    <button name="action_approval_resubmit_requester"
+                            invisible="not is_current_approver or contract_type == 'unit_rate_ctr'"/>
+                    <button name="action_approver_resubmit_requester"
                             string="Resubmit to Requester"
                             type="object"
-                            invisible="state != 'pending_approval'"
-                            groups="contract_management.group_management"/>
+                            invisible="not is_current_approver"/>
 
                     <!-- FINALIZATION -->
                     <button name="action_finalization_proceed" string="Proceed"
@@ -115,8 +111,21 @@
                 </header>
 
                 <sheet>
+                    <!-- Smart button: Change Orders -->
+                    <div class="oe_button_box" name="button_box"
+                         invisible="contract_type not in ('lump_sum_ctr', 'unit_rate_ctr')">
+                        <button name="%(contract_management.action_change_order_by_contract)d"
+                                type="action" class="oe_stat_button" icon="fa-file-text-o">
+                            <field name="change_order_count" widget="statinfo"
+                                   string="Change Orders"/>
+                        </button>
+                    </div>
+
                     <!-- invisible fields used in domains / logic -->
                     <field name="evaluated_partner_ids" invisible="1"/>
+                    <field name="partner_id" invisible="1"/>
+                    <field name="is_current_approver" invisible="1"/>
+                    <field name="current_approver_id" invisible="1"/>
 
                     <div class="oe_title">
                         <h1><field name="name" readonly="1"/></h1>
@@ -155,95 +164,120 @@
                         </group>
                     </group>
 
-                    <notebook>
-                        <page string="Description">
-                            <field name="description"
-                                   placeholder="Contract scope and description..."
-                                   readonly="state in ('review','rfq_processing')"/>
-                        </page>
+                    <!-- 2-column: notebook left, timeline right -->
+                    <div style="display:flex; align-items:flex-start; gap:0; margin-top:4px;">
 
-                        <!-- WORK ITEMS -->
-                        <page string="Work Items">
-                            <field name="line_ids"
-                                   readonly="state in ('review','rfq_processing')">
-                                <tree editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="description"/>
-                                    <field name="qty"
-                                           column_invisible="parent.contract_type in ('frame_msa','daywork_tm')"/>
-                                    <field name="uom"/>
-                                    <field name="unit_price"
-                                        string="Agreed Rate"
-                                        column_invisible="parent.contract_type in ('daywork_tm','lump_sum_ctr')"
-                                        readonly="parent.contract_type == 'unit_rate_ctr'"/>
-                                    <field name="subtotal"
-                                        column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
-                                        readonly="1"/>
-                                </tree>
-                            </field>
-                            <group class="oe_subtotal_footer oe_right"
-                                   invisible="contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')">
-                                <field name="lines_total" string="Lines Total" readonly="1"/>
-                            </group>
-                        </page>
+                        <!-- LEFT: notebook -->
+                        <div style="flex:1; min-width:0;">
+                            <notebook>
+                                <page string="Description">
+                                    <field name="description"
+                                           placeholder="Contract scope and description..."
+                                           readonly="state in ('review','rfq_processing')"/>
+                                </page>
 
-                        <!-- BOQ / DOCUMENTS -->
-                        <page string="BOQ &amp; Documents">
-                            <field name="attachment_ids" widget="many2many_binary"
-                                   readonly="state in ('review','rfq_processing')"/>
-                        </page>
+                                <!-- WORK ITEMS -->
+                                <page string="Work Items">
+                                    <field name="line_ids"
+                                           readonly="state in ('review','rfq_processing')">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="description"/>
+                                            <field name="qty"
+                                                   column_invisible="parent.contract_type in ('frame_msa','daywork_tm')"/>
+                                            <field name="uom"/>
+                                            <field name="unit_price"
+                                                string="Agreed Rate"
+                                                column_invisible="parent.contract_type in ('daywork_tm','lump_sum_ctr') and parent.state not in ('finalization','active','completed')"
+                                                readonly="parent.contract_type == 'unit_rate_ctr'"
+                                                force_save="1"/>
+                                            <field name="subtotal"
+                                                column_invisible="parent.contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')"
+                                                readonly="1"/>
+                                        </tree>
+                                    </field>
+                                    <group class="oe_subtotal_footer oe_right"
+                                           invisible="contract_type in ('frame_msa','daywork_tm','lump_sum_ctr')">
+                                        <field name="lines_total" string="Lines Total" readonly="1"/>
+                                    </group>
+                                </page>
 
-                        <!-- APPROVAL CHAIN -->
-                        <page string="Approval Chain"
-                              invisible="contract_type != 'unit_rate_ctr' and state not in ('evaluation','pending_approval','finalization','active','completed')">
-                            <p class="text-muted"
-                               invisible="state in ('pending_approval','finalization','active','completed')">
-                                Add approvers here — they will be notified when this contract
-                                reaches the Pending Approval stage.
-                            </p>
-                            <field name="approver_ids">
-                                <tree editable="bottom">
-                                    <field name="sequence" widget="handle"/>
-                                    <field name="user_id"/>
-                                    <field name="status" widget="badge"
-                                           decoration-success="status == 'approved'"
-                                           decoration-danger="status == 'rejected'"
-                                           decoration-warning="status == 'pending'"/>
-                                </tree>
-                            </field>
-                        </page>
+                                <!-- BOQ / DOCUMENTS -->
+                                <page string="BOQ &amp; Documents">
+                                    <field name="attachment_ids" widget="many2many_binary"
+                                           readonly="state in ('review','rfq_processing')"/>
+                                </page>
 
-                        <!-- COMMERCIAL EVALUATION -->
-                        <page string="Commercial Evaluation"
-                              invisible="state not in ('evaluation','pending_approval','finalization','active','completed') or contract_type == 'unit_rate_ctr'">
-                            <field name="evaluation_ids">
-                                <tree decoration-success="is_lowest"
-                                      decoration-info="is_recommended">
-                                    <field name="partner_id" string="Contractor"/>
-                                    <field name="total_amount" string="Total Amount"/>
-                                    <field name="avg_profitability" string="Avg. Profit %"/>
-                                    <field name="is_recommended" widget="boolean"/>
-                                    <field name="is_lowest" widget="boolean"/>
-                                    <field name="notes"/>
-                                </tree>
-                            </field>
-                            <separator string="Side-by-Side Comparison"/>
-                            <field name="eval_comparison_html" readonly="1"/>
-                        </page>
+                                <!-- APPROVAL CHAIN -->
+                                <page string="Approval Chain">
+                                    <p class="text-muted"
+                                       invisible="state in ('pending_approval','finalization','active','completed')">
+                                        Add approvers here — they will be notified sequentially
+                                        when this contract reaches Pending Approval.
+                                    </p>
+                                    <field name="approver_ids"
+                                           readonly="state in ('pending_approval','finalization','active','completed')">
+                                        <tree editable="bottom">
+                                            <field name="sequence" widget="handle"/>
+                                            <field name="user_id"/>
+                                            <field name="status" widget="badge"
+                                                   decoration-success="status == 'approved'"
+                                                   decoration-danger="status == 'rejected'"
+                                                   decoration-warning="status == 'pending'"/>
+                                        </tree>
+                                    </field>
+                                </page>
 
-                        <!-- FINALIZATION -->
-                        <page string="Finalization"
-                              invisible="state not in ('finalization','active','completed')">
-                            <group string="Counterparty">
-                                <field name="partner_id"
-                                       string="Counterparty"
-                                       domain="[('id','in',evaluated_partner_ids)] if contract_type != 'unit_rate_ctr' else []"
-                                       required="state in ('finalization','active','completed')"/>
-                            </group>
-                            <separator string="Signed Contract Copy (Mandatory)"/>
-                            <field name="signed_copy_ids" widget="many2many_binary"/>
-                        </page>
-                    </notebook>
+                                <!-- COMMERCIAL EVALUATION -->
+                                <page string="Commercial Evaluation"
+                                      invisible="state not in ('evaluation','pending_approval','finalization','active','completed') or contract_type == 'unit_rate_ctr'">
+                                    <field name="evaluation_ids">
+                                        <tree decoration-success="is_lowest"
+                                              decoration-info="is_recommended">
+                                            <field name="partner_id" string="Contractor"/>
+                                            <field name="total_amount" string="Total Amount"/>
+                                            <field name="avg_profitability" string="Avg. Profit %"/>
+                                            <field name="is_recommended" widget="boolean"/>
+                                            <field name="is_lowest" widget="boolean"/>
+                                            <field name="notes"/>
+                                        </tree>
+                                    </field>
+                                    <separator string="Side-by-Side Comparison"/>
+                                    <field name="eval_comparison_html" readonly="1"/>
+                                </page>
+
+                                <!-- FINALIZATION -->
+                                <page string="Finalization"
+                                      invisible="state not in ('finalization','active','completed')">
+                                    <group string="Counterparty">
+                                        <field name="partner_id"
+                                               string="Counterparty"
+                                               domain="[('id','in',evaluated_partner_ids)] if contract_type != 'unit_rate_ctr' else []"
+                                               required="state in ('finalization','active','completed')"
+                                               readonly="contract_type == 'unit_rate_ctr'"/>
+                                    </group>
+                                    <separator string="Signed Contract Copy (Mandatory)"/>
+                                    <field name="signed_copy_ids" widget="many2many_binary"/>
+                                </page>
+
+                            </notebook>
+                        </div>
+
+                        <!-- RIGHT: Workflow Timeline -->
+                        <div style="flex:0 0 280px; width:280px; margin-left:16px;
+                                    border-left:2px solid #f0f0f0; padding-left:16px;
+                                    padding-top:12px;">
+                            <div style="font-size:11px; font-weight:700; color:#8c96a5;
+                                        text-transform:uppercase; letter-spacing:.7px;
+                                        margin-bottom:14px; padding-bottom:8px;
+                                        border-bottom:1px solid #f0f0f0;">
+                                <i class="fa fa-history" style="margin-right:5px;"></i>
+                                Workflow History
+                            </div>
+                            <field name="timeline_html" readonly="1"/>
+                        </div>
+
+                    </div>
                 </sheet>
                 <chatter/>
             </form>

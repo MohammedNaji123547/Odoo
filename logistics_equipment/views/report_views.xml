@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══ SHARED SEARCH VIEW (extended for reports) ══════════════════════════ -->
+    <record id="view_attendance_report_search" model="ir.ui.view">
+        <field name="name">logistics.attendance.report.search</field>
+        <field name="model">logistics.attendance</field>
+        <field name="arch" type="xml">
+            <search string="Attendance Reports">
+                <field name="equipment_id"/>
+                <field name="supplier_id"/>
+                <field name="request_id"/>
+                <field name="attendance_date"/>
+                <field name="equipment_category_id"/>
+                <separator/>
+                <filter name="present"  string="Present"  domain="[('status','=','present')]"/>
+                <filter name="partial"  string="Partial"  domain="[('status','=','partial')]"/>
+                <filter name="absent"   string="Absent"   domain="[('status','=','absent')]"/>
+                <filter name="pending"  string="Pending"  domain="[('status','=','pending')]"/>
+                <filter name="has_overtime" string="Has Overtime"
+                        domain="[('overtime_hours','>',0)]"/>
+                <separator/>
+                <filter name="this_month" string="This Month"
+                        domain="[('attendance_date','&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d')),
+                                 ('attendance_date','&lt;=', (context_today() + relativedelta(day=31)).strftime('%Y-%m-%d'))]"/>
+                <group expand="1" string="Group By">
+                    <filter name="by_equipment"  string="Equipment"
+                            context="{'group_by': 'equipment_id'}"/>
+                    <filter name="by_category"   string="Category"
+                            context="{'group_by': 'equipment_category_id'}"/>
+                    <filter name="by_supplier"   string="Supplier"
+                            context="{'group_by': 'supplier_id'}"/>
+                    <filter name="by_request"    string="Request"
+                            context="{'group_by': 'request_id'}"/>
+                    <filter name="by_status"     string="Status"
+                            context="{'group_by': 'status'}"/>
+                    <filter name="by_date_day"   string="Date"
+                            context="{'group_by': 'attendance_date:day'}"/>
+                    <filter name="by_date_month" string="Month"
+                            context="{'group_by': 'attendance_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══ REPORT LIST VIEW (read-only, all columns) ══════════════════════════ -->
+    <record id="view_attendance_report_list" model="ir.ui.view">
+        <field name="name">logistics.attendance.report.list</field>
+        <field name="model">logistics.attendance</field>
+        <field name="arch" type="xml">
+            <tree string="Attendance Report" create="false" edit="false" delete="false"
+                  decoration-success="status == 'present'"
+                  decoration-warning="status == 'partial'"
+                  decoration-danger="status == 'absent'"
+                  decoration-muted="status == 'pending'">
+                <field name="attendance_date" string="Date"/>
+                <field name="request_id"      string="Request" optional="show"/>
+                <field name="equipment_id"    string="Equipment"/>
+                <field name="equipment_category_id" string="Category" optional="show"/>
+                <field name="supplier_id"     string="Supplier"/>
+                <field name="planned_qty"     string="Planned" sum="Planned Total"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'present'"
+                       decoration-warning="status == 'partial'"
+                       decoration-danger="status == 'absent'"
+                       decoration-muted="status == 'pending'"/>
+                <field name="actual_qty"      string="Actual"      sum="Actual Total"/>
+                <field name="attendance_rate" string="Rate %"      avg="Avg Rate"/>
+                <field name="working_hours"   string="Hours"       avg="Avg Hours" optional="show"/>
+                <field name="overtime_hours"  string="OT Hours"    sum="OT Total"  optional="show"/>
+                <field name="overtime_cost"   string="OT Cost"     sum="OT Cost"   optional="show"/>
+                <field name="daily_cost"      string="Daily Cost"              optional="show"/>
+                <field name="total_cost"      string="Total Cost"  sum="Grand Total"/>
+                <field name="currency_id"     invisible="1"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- ══ PIVOT VIEW ════════════════════════════════════════════════════════ -->
+    <record id="view_attendance_pivot" model="ir.ui.view">
+        <field name="name">logistics.attendance.pivot</field>
+        <field name="model">logistics.attendance</field>
+        <field name="arch" type="xml">
+            <pivot string="Attendance Analysis" disable_linking="0"
+                   display_quantity="true">
+                <field name="equipment_id"        type="row"/>
+                <field name="attendance_date"     type="col" interval="month"/>
+                <field name="planned_qty"         type="measure"/>
+                <field name="actual_qty"          type="measure"/>
+                <field name="attendance_rate"     type="measure"/>
+                <field name="working_hours"       type="measure"/>
+                <field name="overtime_hours"      type="measure"/>
+                <field name="overtime_cost"       type="measure"/>
+                <field name="total_cost"          type="measure"/>
+            </pivot>
+        </field>
+    </record>
+
+    <!-- ══ GRAPH VIEW ════════════════════════════════════════════════════════ -->
+    <record id="view_attendance_graph" model="ir.ui.view">
+        <field name="name">logistics.attendance.graph</field>
+        <field name="model">logistics.attendance</field>
+        <field name="arch" type="xml">
+            <graph string="Attendance Analysis" type="bar" stacked="False">
+                <field name="equipment_id" type="row"/>
+                <field name="total_cost"   type="measure"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- ══ REPORT 1: Equipment Utilization ═══════════════════════════════════ -->
+    <!-- Answers: which equipment is being used? how much? attendance rate? -->
+    <record id="action_report_utilization" model="ir.actions.act_window">
+        <field name="name">Equipment Utilization</field>
+        <field name="res_model">logistics.attendance</field>
+        <field name="view_mode">pivot,graph,tree</field>
+        <field name="search_view_id" ref="view_attendance_report_search"/>
+        <field name="domain">[('status','!=','pending')]</field>
+        <field name="context">{
+            'group_by': ['equipment_id'],
+            'pivot_row_groupby': ['equipment_id'],
+            'pivot_col_groupby': ['attendance_date:month'],
+            'pivot_measures': ['planned_qty', 'actual_qty', 'attendance_rate'],
+            'graph_groupbys': ['equipment_id'],
+            'graph_measure': 'actual_qty',
+        }</field>
+    </record>
+
+    <!-- ══ REPORT 2: Cost Summary ═════════════════════════════════════════════ -->
+    <!-- Answers: what did each request / supplier cost? how much overtime? -->
+    <record id="action_report_cost" model="ir.actions.act_window">
+        <field name="name">Cost Summary</field>
+        <field name="res_model">logistics.attendance</field>
+        <field name="view_mode">pivot,graph,tree</field>
+        <field name="search_view_id" ref="view_attendance_report_search"/>
+        <field name="domain">[('status','!=','pending')]</field>
+        <field name="context">{
+            'group_by': ['request_id'],
+            'pivot_row_groupby': ['request_id'],
+            'pivot_col_groupby': ['attendance_date:month'],
+            'pivot_measures': ['total_cost', 'overtime_cost', 'overtime_hours'],
+            'graph_groupbys': ['request_id'],
+            'graph_measure': 'total_cost',
+        }</field>
+    </record>
+
+    <!-- ══ REPORT 3: Working Hours Analysis ══════════════════════════════════ -->
+    <!-- Answers: who worked overtime? how many hours? what was the OT cost? -->
+    <record id="action_report_hours" model="ir.actions.act_window">
+        <field name="name">Working Hours Analysis</field>
+        <field name="res_model">logistics.attendance</field>
+        <field name="view_mode">pivot,graph,tree</field>
+        <field name="search_view_id" ref="view_attendance_report_search"/>
+        <field name="domain">[('status','in',['present','partial'])]</field>
+        <field name="context">{
+            'group_by': ['equipment_id'],
+            'pivot_row_groupby': ['equipment_id'],
+            'pivot_col_groupby': ['attendance_date:month'],
+            'pivot_measures': ['working_hours', 'overtime_hours', 'overtime_cost'],
+            'graph_groupbys': ['equipment_id'],
+            'graph_measure': 'overtime_hours',
+        }</field>
+    </record>
+
+    <!-- ══ REPORT 4: Supplier Performance ════════════════════════════════════ -->
+    <!-- Answers: which supplier delivers? what's their attendance rate? cost? -->
+    <record id="action_report_supplier" model="ir.actions.act_window">
+        <field name="name">Supplier Performance</field>
+        <field name="res_model">logistics.attendance</field>
+        <field name="view_mode">pivot,graph,tree</field>
+        <field name="search_view_id" ref="view_attendance_report_search"/>
+        <field name="domain">[('status','!=','pending')]</field>
+        <field name="context">{
+            'group_by': ['supplier_id'],
+            'pivot_row_groupby': ['supplier_id'],
+            'pivot_col_groupby': ['status'],
+            'pivot_measures': ['actual_qty', 'total_cost', 'attendance_rate'],
+            'graph_groupbys': ['supplier_id'],
+            'graph_measure': 'attendance_rate',
+            'graph_type': 'bar',
+        }</field>
+    </record>
+
+</odoo>

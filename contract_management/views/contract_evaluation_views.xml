@@ -6,6 +6,8 @@
         <field name="arch" type="xml">
             <form string="Commercial Evaluation">
                 <sheet>
+                    <!-- required by domain on contract_line_id -->
+                    <field name="contract_id" invisible="1"/>
                     <group>
                         <group>
                             <field name="partner_id" string="Contractor"/>
@@ -16,7 +18,8 @@
                         <tree editable="bottom"
                               decoration-success="profitability &gt; 0"
                               decoration-danger="profitability &lt; 0">
-                            <field name="contract_line_id" string="BOQ Item"/>
+                            <field name="contract_line_id"
+                                   domain="[('contract_id', '=', parent.contract_id)]"/>
                             <field name="description"/>
                             <field name="qty"/>
                             <field name="uom"/>

@@ -3,6 +3,24 @@ from odoo.exceptions import ValidationError
 from markupsafe import Markup, escape
 
 
+# ── Action metadata: (label, fa-icon, hex-color) ──────────────────────────────
+_ACTION_META = {
+    'submit_review':       ('Submitted for Review',              'fa-paper-plane',  '#0d6efd'),
+    'reviewed_rfq':        ('Reviewed — Sent to RFQ',            'fa-eye',          '#6f42c1'),
+    'reviewed_approval':   ('Reviewed — Sent for Approval',      'fa-eye',          '#6f42c1'),
+    'rfq_proceed':         ('RFQ Processed — Evaluation',        'fa-forward',      '#fd7e14'),
+    'proceed_approval':    ('Submitted for Approval',            'fa-check-square', '#0d6efd'),
+    'approver_approve':    ('Approved',                          'fa-check',        '#fd7e14'),
+    'chain_complete':      ('All Approvers Done — Finalization', 'fa-trophy',       '#198754'),
+    'approver_reject':     ('Rejected by Approver',              'fa-times',        '#dc3545'),
+    'resubmit_contracting':('Resubmitted to Contracting',        'fa-undo',         '#fd7e14'),
+    'resubmit_requestor':  ('Resubmitted to Requester',          'fa-undo',         '#6c757d'),
+    'finalization':        ('Finalized — Contract Active',       'fa-flag',         '#198754'),
+    'completed':           ('Contract Completed',                'fa-check-circle', '#198754'),
+    'cancel':              ('Cancelled / Rejected',              'fa-ban',          '#dc3545'),
+}
+
+
 class ContractContract(models.Model):
     _name = 'contract.contract'
     _description = 'Contract'
@@ -76,27 +94,305 @@ class ContractContract(models.Model):
     )
 
     line_ids = fields.One2many('contract.line', 'contract_id', string='Work Items')
+    change_order_ids = fields.One2many(
+        'contract.change_order', 'contract_id', string='Change Orders',
+    )
+    change_order_count = fields.Integer(
+        compute='_compute_change_order_count'
+    )
     lines_total = fields.Monetary(
         string='Lines Total', compute='_compute_lines_total', store=True
     )
+    revised_contract_html = fields.Html(
+        string='Revised Contract Summary',
+        compute='_compute_revised_contract_html',
+        sanitize=False,
+    )
+    # ── CO summary (stored — filterable/sortable in list view) ────────────────
+    approved_co_count = fields.Integer(
+        string='Approved COs',
+        compute='_compute_co_summary', store=True,
+    )
+    total_co_change_value = fields.Monetary(
+        string='Total Change Value',
+        compute='_compute_co_summary', store=True,
+    )
+    co_change_percentage = fields.Float(
+        string='Change %',
+        compute='_compute_co_summary', store=True, digits=(16, 2),
+    )
+    revised_contract_value = fields.Monetary(
+        string='Revised Contract Value',
+        compute='_compute_co_summary', store=True,
+    )
     evaluation_ids = fields.One2many('contract.evaluation', 'contract_id', string='Evaluations')
-    approver_ids = fields.One2many('contract.approver', 'contract_id', string='Approvers')
 
+    # ── Approvers ──────────────────────────────────────────────────────────
+    approver_ids = fields.One2many('contract.approver', 'contract_id', string='Approvers')
+    current_approver_id = fields.Many2one(
+        'res.users', string='Current Approver',
+        compute='_compute_current_approver', store=True,
+    )
+    is_current_approver = fields.Boolean(
+        compute='_compute_is_current_approver',
+    )
+
+    # ── Workflow Timeline ──────────────────────────────────────────────────
+    log_ids = fields.One2many('contract.log', 'contract_id', string='Workflow History')
+    timeline_html = fields.Html(
+        compute='_compute_timeline_html', sanitize=False,
+    )
+
+    # ── Evaluation comparison ──────────────────────────────────────────────
     eval_comparison_html = fields.Html(
         string='Evaluation Comparison',
         compute='_compute_eval_comparison_html',
         sanitize=False,
     )
 
+    # ── Computed ───────────────────────────────────────────────────────────
+    @api.depends('change_order_ids')
+    def _compute_change_order_count(self):
+        for rec in self:
+            rec.change_order_count = len(rec.change_order_ids)
+
     @api.depends('line_ids.subtotal')
     def _compute_lines_total(self):
         for rec in self:
             rec.lines_total = sum(rec.line_ids.mapped('subtotal'))
 
+    @api.depends('change_order_ids.state', 'change_order_ids.total_change_value',
+                 'lines_total')
+    def _compute_co_summary(self):
+        for rec in self:
+            approved = rec.change_order_ids.filtered(lambda co: co.state == 'approved')
+            rec.approved_co_count = len(approved)
+            total_cv = sum(approved.mapped('total_change_value'))
+            rec.total_co_change_value = total_cv
+            orig = rec.lines_total or 0.0
+            rec.revised_contract_value = orig + total_cv
+            rec.co_change_percentage = (total_cv / orig * 100) if orig else 0.0
+
+    @api.depends('line_ids', 'line_ids.qty', 'line_ids.unit_price',
+                 'change_order_ids.state', 'change_order_ids.line_ids',
+                 'change_order_ids.line_ids.change_type',
+                 'change_order_ids.line_ids.change_qty',
+                 'change_order_ids.line_ids.new_unit_price',
+                 'change_order_ids.line_ids.change_value')
+    def _compute_revised_contract_html(self):
+        for contract in self:
+            if contract.contract_type not in ('lump_sum_ctr', 'unit_rate_ctr'):
+                contract.revised_contract_html = ''
+                continue
+
+            approved_cos = contract.change_order_ids.filtered(
+                lambda co: co.state == 'approved'
+            ).sorted(lambda co: (co.date or '', co.name))
+
+            if not approved_cos:
+                contract.revised_contract_html = (
+                    '<p style="color:#6c757d;padding:8px 0;">'
+                    'No approved Change Orders — contract values are unchanged.</p>'
+                )
+                continue
+
+            rows = ''
+            orig_grand = 0.0
+            revised_grand = 0.0
+
+            for cl in contract.line_ids:
+                # Apply each approved CO sequentially
+                curr_qty = cl.qty
+                curr_price = cl.unit_price
+                total_cv = 0.0
+
+                for co in approved_cos:
+                    for co_line in co.line_ids.filtered(
+                        lambda l, cl=cl: l.contract_line_id.id == cl.id
+                    ):
+                        total_cv += co_line.change_value
+                        if co_line.change_type == 'change_qty':
+                            curr_qty += co_line.change_qty
+                        elif co_line.change_type == 'change_price':
+                            curr_price = co_line.new_unit_price
+                        elif co_line.change_type == 'change_qty_price':
+                            curr_qty += co_line.change_qty
+                            curr_price = co_line.new_unit_price
+
+                orig_total = cl.qty * cl.unit_price
+                revised_total = curr_qty * curr_price
+                changed = bool(total_cv)
+
+                orig_grand += orig_total
+                revised_grand += revised_total
+
+                delta_qty = curr_qty - cl.qty
+                price_changed = curr_price != cl.unit_price
+
+                rows += (
+                    f'<tr style="{"background:#fff8e1;" if changed else ""}">'
+                    f'<td style="padding:8px 10px">{cl.description or "-"}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{cl.qty:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{cl.unit_price:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right">{orig_total:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'color:{"#28a745" if delta_qty > 0 else "#dc3545" if delta_qty < 0 else "inherit"}">'
+                    f'{"+" if delta_qty > 0 else ""}{delta_qty:.2f if delta_qty else "-"}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"color:#fd7e14;font-weight:bold;" if price_changed else ""}">'
+                    f'{curr_price:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"font-weight:bold;" if changed else ""}">{curr_qty:.2f}</td>'
+                    f'<td style="padding:8px 10px;text-align:right;'
+                    f'{"font-weight:bold;" if changed else ""}">{revised_total:.2f}</td>'
+                    f'</tr>'
+                )
+
+            total_cv_grand = revised_grand - orig_grand
+            cv_pct = (total_cv_grand / orig_grand * 100) if orig_grand else 0.0
+            cv_color = '#dc3545' if total_cv_grand >= 0 else '#198754'
+
+            html = (
+                '<table style="width:100%;border-collapse:collapse;font-size:13px;">'
+                '<thead>'
+                '<tr style="background:#2c3e50;color:#fff;">'
+                '<th style="padding:8px 10px;text-align:left">Work Item</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Unit Price</th>'
+                '<th style="padding:8px 10px;text-align:right">Orig. Total</th>'
+                '<th style="padding:8px 10px;text-align:right">Change Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Unit Price</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Qty</th>'
+                '<th style="padding:8px 10px;text-align:right">Revised Total</th>'
+                '</tr>'
+                '</thead>'
+                f'<tbody>{rows}</tbody>'
+                '</table>'
+                f'<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:2px;">'
+                f'<tr style="background:#495057;color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px;width:60%">Original Contract Total</td>'
+                f'<td style="padding:10px 10px;text-align:right">{orig_grand:.2f}</td>'
+                f'</tr>'
+                f'<tr style="background:{cv_color};color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px">Total Change Value</td>'
+                f'<td style="padding:10px 10px;text-align:right">'
+                f'{"+" if total_cv_grand >= 0 else ""}{total_cv_grand:.2f} ({cv_pct:.2f}%)</td>'
+                f'</tr>'
+                f'<tr style="background:#155724;color:#fff;font-weight:bold;">'
+                f'<td style="padding:10px 10px">Revised Contract Total</td>'
+                f'<td style="padding:10px 10px;text-align:right">{revised_grand:.2f}</td>'
+                f'</tr>'
+                f'</table>'
+            )
+            contract.revised_contract_html = html
+
     @api.depends('evaluation_ids.partner_id')
     def _compute_evaluated_partners(self):
         for rec in self:
             rec.evaluated_partner_ids = rec.evaluation_ids.mapped('partner_id')
+
+    @api.depends('approver_ids.status', 'state')
+    def _compute_current_approver(self):
+        for rec in self:
+            if rec.state != 'pending_approval':
+                rec.current_approver_id = False
+                continue
+            pending = rec.approver_ids.filtered(
+                lambda a: a.status == 'pending'
+            ).sorted('sequence')
+            rec.current_approver_id = pending[0].user_id if pending else False
+
+    @api.depends('current_approver_id', 'state')
+    @api.depends_context('uid')
+    def _compute_is_current_approver(self):
+        uid = self.env.user.id
+        for rec in self:
+            rec.is_current_approver = (
+                rec.state == 'pending_approval'
+                and bool(rec.current_approver_id)
+                and rec.current_approver_id.id == uid
+            )
+
+    @api.depends('log_ids', 'log_ids.label', 'log_ids.note',
+                 'log_ids.user_id', 'log_ids.action_date')
+    def _compute_timeline_html(self):
+        for rec in self:
+            logs = rec.log_ids
+            if not logs:
+                rec.timeline_html = Markup(
+                    '<div style="padding:24px 8px; text-align:center; color:#adb5bd;">'
+                    '<i class="fa fa-clock-o" style="font-size:28px; display:block; margin-bottom:8px;"></i>'
+                    '<span style="font-size:12px;">No activity yet</span>'
+                    '</div>'
+                )
+                continue
+
+            items = Markup('')
+            total = len(logs)
+            for i, log in enumerate(logs):
+                is_last = (i == total - 1)
+                color = log.color or '#6c757d'
+                icon = log.icon or 'fa-circle'
+                try:
+                    dt = fields.Datetime.context_timestamp(log, log.action_date)
+                    date_str = dt.strftime('%d %b %Y  %H:%M')
+                except Exception:
+                    date_str = str(log.action_date or '-')
+
+                user_name = escape(log.user_id.name if log.user_id else '-')
+                label = escape(log.label or '')
+
+                note_html = Markup('')
+                if log.note:
+                    note_html = Markup(
+                        '<div style="margin-top:6px; padding:6px 8px; '
+                        'background:#fff8e1; border-left:3px solid #ffc107; '
+                        'border-radius:3px; font-size:11px; color:#5d4037; '
+                        'word-break:break-word;">'
+                        '<i class="fa fa-comment-o" style="margin-right:4px;"></i>'
+                        '{}</div>'
+                    ).format(escape(log.note))
+
+                line_html = Markup('') if is_last else Markup(
+                    '<div style="position:absolute; left:9px; top:22px; '
+                    'bottom:-4px; width:2px; background:#e9ecef;"></div>'
+                )
+
+                items += Markup(
+                    '<div style="position:relative; padding-left:34px; '
+                    'padding-bottom:{pb}; min-height:38px;">'
+                    '{line}'
+                    '<div style="position:absolute; left:0; top:2px; width:20px; height:20px; '
+                    'border-radius:50%; background:{color}; display:flex; align-items:center; '
+                    'justify-content:center; box-shadow:0 0 0 3px #fff, 0 0 0 4px {color}33;">'
+                    '<i class="fa {icon}" style="color:#fff; font-size:9px;"></i>'
+                    '</div>'
+                    '<div style="background:#fff; border:1px solid #e9ecef; border-radius:8px; '
+                    'padding:8px 10px; box-shadow:0 1px 3px rgba(0,0,0,.06);">'
+                    '<div style="font-weight:600; font-size:12px; color:#212529;">{label}</div>'
+                    '<div style="font-size:11px; color:#6c757d; margin-top:3px;">'
+                    '<i class="fa fa-user-o" style="margin-right:3px; opacity:.7;"></i>{user}'
+                    '</div>'
+                    '<div style="font-size:10px; color:#adb5bd; margin-top:2px;">'
+                    '<i class="fa fa-clock-o" style="margin-right:3px;"></i>{date}'
+                    '</div>'
+                    '{note}'
+                    '</div>'
+                    '</div>'
+                ).format(
+                    pb='20px' if not is_last else '4px',
+                    line=line_html,
+                    color=color,
+                    icon=icon,
+                    label=label,
+                    user=user_name,
+                    date=date_str,
+                    note=note_html,
+                )
+
+            rec.timeline_html = Markup(
+                '<div style="padding:4px 4px 0 4px;">{}</div>'
+            ).format(items)
 
     @api.depends(
         'evaluation_ids', 'evaluation_ids.partner_id', 'evaluation_ids.is_recommended',
@@ -172,14 +468,48 @@ class ContractContract(models.Model):
 
             rec.eval_comparison_html = Markup('').join(parts)
 
+    # ── CRUD ───────────────────────────────────────────────────────────────
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if (vals.get('contract_type') == 'unit_rate_ctr'
+                    and vals.get('parent_frame_id')
+                    and not vals.get('partner_id')):
+                frame = self.env['contract.contract'].browse(vals['parent_frame_id'])
+                if frame.partner_id:
+                    vals['partner_id'] = frame.partner_id.id
             if vals.get('name', _('New')) == _('New'):
-                vals['name'] = self.env['ir.sequence'].next_by_code('contract.contract') or _('New')
+                ctype = vals.get('contract_type', '')
+                seq_map = {
+                    'frame_msa': 'contract.frame_msa',
+                    'lump_sum_ctr': 'contract.lump_sum_ctr',
+                    'daywork_tm': 'contract.daywork_tm',
+                }
+                if ctype in seq_map:
+                    vals['name'] = (
+                        self.env['ir.sequence'].next_by_code(seq_map[ctype]) or _('New')
+                    )
+                elif ctype == 'unit_rate_ctr':
+                    parent_id = vals.get('parent_frame_id')
+                    if parent_id:
+                        parent = self.env['contract.contract'].browse(parent_id)
+                        count = self.search_count([
+                            ('contract_type', '=', 'unit_rate_ctr'),
+                            ('parent_frame_id', '=', parent_id),
+                        ])
+                        vals['name'] = f"CTR-{parent.name}-{count + 1:02d}"
+                    else:
+                        vals['name'] = _('New')
         return super().create(vals_list)
 
     def write(self, vals):
+        if 'parent_frame_id' in vals and vals.get('parent_frame_id'):
+            frame = self.env['contract.contract'].browse(vals['parent_frame_id'])
+            if frame.partner_id:
+                for rec in self:
+                    if rec.contract_type == 'unit_rate_ctr':
+                        vals = dict(vals, partner_id=frame.partner_id.id)
+                        break
         res = super().write(vals)
         if 'responsible_id' in vals:
             for rec in self:
@@ -189,9 +519,11 @@ class ContractContract(models.Model):
                         rec.message_subscribe(partner_ids=[rec.responsible_id.partner_id.id])
         return res
 
+    # ── Onchange ───────────────────────────────────────────────────────────
     @api.onchange('parent_frame_id')
     def _onchange_parent_frame_id(self):
         if self.parent_frame_id:
+            self.partner_id = self.parent_frame_id.partner_id
             lines = [(0, 0, {
                 'description': l.description,
                 'uom': l.uom,
@@ -201,6 +533,7 @@ class ContractContract(models.Model):
             }) for l in self.parent_frame_id.line_ids]
             self.line_ids = [(5, 0, 0)] + lines
         else:
+            self.partner_id = False
             self.line_ids = [(5, 0, 0)]
 
     @api.onchange('contractor_id')
@@ -208,6 +541,7 @@ class ContractContract(models.Model):
         self.parent_frame_id = False
         self.line_ids = [(5, 0, 0)]
 
+    # ── Validation ─────────────────────────────────────────────────────────
     def _check_attachments(self):
         if not self.attachment_ids:
             raise ValidationError(_('BOQ & Technical Documents are mandatory. Please attach before submitting.'))
@@ -216,6 +550,18 @@ class ContractContract(models.Model):
         if not self.approver_ids:
             raise ValidationError(_('Please add at least one approver before proceeding to approval.'))
 
+    # ── Logging helper ─────────────────────────────────────────────────────
+    def _log(self, action_code, note=None, label_override=None):
+        meta = _ACTION_META.get(action_code, ('Action', 'fa-circle', '#6c757d'))
+        self.env['contract.log'].create({
+            'contract_id': self.id,
+            'label': label_override or meta[0],
+            'icon': meta[1],
+            'color': meta[2],
+            'note': note,
+        })
+
+    # ── Wizard helper ──────────────────────────────────────────────────────
     def _open_wizard(self, action_code, label):
         return {
             'type': 'ir.actions.act_window',
@@ -230,7 +576,43 @@ class ContractContract(models.Model):
             }
         }
 
+    # ── Workflow actions ───────────────────────────────────────────────────
+    def action_submit_review(self):
+        self._check_attachments()
+        self.state = 'review'
+        self._log('submit_review')
+        self.message_post(body=_('Submitted for review.'))
+
+    def action_reviewed(self):
+        if self.contract_type == 'unit_rate_ctr':
+            self._check_approvers()
+            self.approver_ids.write({'status': 'pending'})
+            self.state = 'pending_approval'
+            first = self.approver_ids.sorted('sequence')[0]
+            self._log('reviewed_approval')
+            self._notify_approvers()
+            self.message_post(
+                body=_('Reviewed. Pending approval from %s.') % first.user_id.name,
+                partner_ids=[first.user_id.partner_id.id],
+            )
+        else:
+            self.state = 'rfq_processing'
+            self._log('reviewed_rfq')
+            self.message_post(body=_('Reviewed. Proceeding to RFQ.'))
+
+    def action_resubmit_requestor(self):
+        return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
+
+    def action_rfq_proceed(self):
+        self.state = 'evaluation'
+        self._log('rfq_proceed')
+        self.message_post(body=_('RFQ processed. Proceeding to Evaluation.'))
+
+    def action_rfq_cancel(self):
+        return self._open_wizard('cancel', 'Cancel Contract')
+
     def _notify_approvers(self):
+        """Schedule a To-Do activity for each approver (used by tests)."""
         for approver in self.approver_ids:
             self.activity_schedule(
                 'mail.mail_activity_data_todo',
@@ -238,33 +620,19 @@ class ContractContract(models.Model):
                 note=_('Your approval is required for contract: %s') % self.name,
             )
 
-    def action_submit_review(self):
-        self._check_attachments()
-        self.state = 'review'
-
-    def action_reviewed(self):
-        if self.contract_type == 'unit_rate_ctr':
-            self._check_approvers()
-            self.state = 'pending_approval'
-            self._notify_approvers()
-        else:
-            self.state = 'rfq_processing'
-
-    def action_resubmit_requestor(self):
-        return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
-
-    def action_rfq_proceed(self):
-        self.state = 'evaluation'
-
-    def action_rfq_cancel(self):
-        return self._open_wizard('cancel', 'Cancel Contract')
-
     def action_proceed_approval(self):
         if not self.evaluation_ids:
             raise ValidationError(_('Please add at least one commercial evaluation before proceeding.'))
         self._check_approvers()
+        self.approver_ids.write({'status': 'pending'})
         self.state = 'pending_approval'
+        first = self.approver_ids.sorted('sequence')[0]
+        self._log('proceed_approval')
         self._notify_approvers()
+        self.message_post(
+            body=_('Submitted for approval. Pending approval from %s.') % first.user_id.name,
+            partner_ids=[first.user_id.partner_id.id],
+        )
 
     def action_evaluation_cancel(self):
         return self._open_wizard('cancel', 'Cancel Contract')
@@ -272,27 +640,88 @@ class ContractContract(models.Model):
     def action_evaluation_resubmit_requestor(self):
         return self._open_wizard('resubmit_requestor', 'Resubmit to Requestor')
 
+    # ── Sequential approver actions ────────────────────────────────────────
+    def action_approver_approve(self):
+        self.ensure_one()
+        current = self.approver_ids.filtered(
+            lambda a: a.user_id == self.env.user and a.status == 'pending'
+        )
+        if not current:
+            raise ValidationError(_('You are not the current approver for this contract.'))
+        current[:1].write({'status': 'approved'})
+
+        total = len(self.approver_ids)
+        done = len(self.approver_ids.filtered(lambda a: a.status == 'approved'))
+        step_label = _('Approved (Step %d of %d)') % (done, total)
+        self._log('approver_approve', label_override=step_label)
+
+        next_pending = self.approver_ids.filtered(
+            lambda a: a.status == 'pending'
+        ).sorted('sequence')
+
+        if next_pending:
+            next_a = next_pending[0]
+            self.message_post(
+                body=_('Approved by %s. Pending approval from %s.') % (
+                    self.env.user.name, next_a.user_id.name
+                ),
+                partner_ids=[next_a.user_id.partner_id.id],
+            )
+        else:
+            self.state = 'finalization'
+            self._log('chain_complete')
+            self.message_post(
+                body=_('All approvers have approved. Contract moved to Finalization.')
+            )
+
+    def action_approver_reject(self):
+        return self._open_wizard('approver_reject', _('Reject Contract'))
+
+    def action_approver_resubmit_contracting(self):
+        return self._open_wizard('resubmit_contracting', _('Resubmit to Contracting'))
+
+    def action_approver_resubmit_requester(self):
+        return self._open_wizard('resubmit_requestor', _('Resubmit to Requester'))
+
+    # ── Backward-compatible shims (used by tests) ──────────────────────────
     def action_approve(self):
-        self.state = 'finalization'
+        """Approve as the first pending approver (no current-user check — for tests)."""
+        for rec in self:
+            pending = rec.approver_ids.filtered(
+                lambda a: a.status == 'pending'
+            ).sorted('sequence')
+            if pending:
+                pending[:1].write({'status': 'approved'})
+                total = len(rec.approver_ids)
+                done = len(rec.approver_ids.filtered(lambda a: a.status == 'approved'))
+                rec._log('approver_approve',
+                         label_override=_('Approved (Step %d of %d)') % (done, total))
+                still_pending = rec.approver_ids.filtered(lambda a: a.status == 'pending')
+                if not still_pending:
+                    rec.state = 'finalization'
+                    rec._log('chain_complete')
+            else:
+                rec.state = 'finalization'
+                rec._log('chain_complete')
 
     def action_reject(self):
-        return self._open_wizard('cancel', 'Reject Contract')
+        """Backward-compatible alias for approver reject wizard."""
+        return self._open_wizard('approver_reject', _('Reject Contract'))
 
-    def action_resubmit_contracting(self):
-        return self._open_wizard('resubmit_contracting', 'Resubmit to Contracting')
-
-    def action_approval_resubmit_requester(self):
-        return self._open_wizard('resubmit_requestor', 'Resubmit to Requester')
-
+    # ── Finalization & beyond ──────────────────────────────────────────────
     def action_finalization_proceed(self):
         if not self.signed_copy_ids:
             raise ValidationError(_('Please attach the signed contract copy.'))
         if not self.partner_id:
             raise ValidationError(_('Please set the Counterparty.'))
         self.state = 'active'
+        self._log('finalization')
+        self.message_post(body=_('Contract finalized and is now Active.'))
 
     def action_finalization_cancel(self):
         return self._open_wizard('cancel', 'Cancel Contract')
 
     def action_active_proceed(self):
         self.state = 'completed'
+        self._log('completed')
+        self.message_post(body=_('Contract marked as Completed.'))

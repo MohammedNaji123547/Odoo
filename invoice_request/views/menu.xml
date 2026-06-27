@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_invoice_request_root"
+              name="Invoice Requests"
+              sequence="60"/>
+
+    <menuitem id="menu_invoice_request_all"
+              name="All Requests"
+              parent="menu_invoice_request_root"
+              action="action_invoice_request"
+              sequence="10"/>
+</odoo>
